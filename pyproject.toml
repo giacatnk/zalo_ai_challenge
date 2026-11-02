@@ -1,0 +1,22 @@
+[project]
+name = "datamate"
+version = "0.1.0"
+description = "Zalo AI Challenge 2026 - DataMate: Vietnamese QA agent over small-business tabular data"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.2",
+    "numpy>=1.26",
+    "openpyxl>=3.1",
+    "python-calamine>=0.2",
+    "openai>=1.40",
+    "tqdm>=4.66",
+    "duckdb>=2.0.0",
+    "sqlglot>=30.26.0",
+]
+
+[dependency-groups]
+# GPU serving (Colab / Docker). Not needed for local dev against Ollama.
+gpu = ["vllm>=0.30; sys_platform == 'linux'"]
+
+[tool.uv]
+package = false
