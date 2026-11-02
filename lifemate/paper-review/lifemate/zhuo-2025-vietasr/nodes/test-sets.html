@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test set và hệ so sánh</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../_assets/common.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+.page{max-width:780px;margin:0 auto}
+.crumbs{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:14px;margin-bottom:14px}
+.detail h1{margin-bottom:6px}
+.detail .sec{margin-top:18px}
+.detail .sec>.k{font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px}
+.origin{border-radius:var(--r);padding:10px 14px;background:var(--soft);font-size:14px}
+.done{display:inline-flex;gap:8px;align-items:center;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:var(--r);background:var(--soft)}
+.pager{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+.pager a{flex:1;padding:10px 14px;border-radius:8px;box-shadow:var(--lift);text-decoration:none;font-size:14px}
+.pager a:hover{box-shadow:var(--lift-hi)}
+.pager a.next{text-align:right}
+.pager small{display:block;color:var(--mute);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="page detail" id="detail"></div></div>
+
+<script src="../../_assets/common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" defer></script>
+<script>
+const DATA = {"topic": "lifemate", "paper": {"id": "zhuo-2025-vietasr", "title": "VietASR: Achieving Industry-level Vietnamese ASR with 50-hour Labeled Data and Large-Scale Speech Pretraining", "venue": "Interspeech", "year": 2025, "url": "https://arxiv.org/abs/2505.21527"}, "labels": {"fbank": "Waveform → Fbank", "wer": "WER (word error rate)", "asr-encoder": "Encoder ASR và output theo frame", "bpe": "BPE word pieces", "rnnt": "RNN-T (transducer)", "pruned-rnnt": "Pruned RNN-T loss", "zipformer": "Zipformer", "ssl": "Self-supervised learning (SSL) cho speech", "kmeans-codebook": "Codebook k-means (nhãn cụm)", "hubert": "HuBERT", "hubert-on-fbank": "Masked prediction trên Fbank + loss cross-entropy", "asr-biased-ssl": "ASR-biased SSL", "supervised-codebook": "Supervised codebook", "multi-iteration": "Lặp nhiều vòng", "vad-segmentation": "VAD + cắt đoạn tự động", "streaming-asr": "Streaming ASR (chunk)", "test-sets": "Test set và hệ so sánh", "__target": "VietASR: Zipformer + HuBERT-style SSL với supervised codebook, lặp 3 vòng"}, "node": {"id": "test-sets", "label": "Test set và hệ so sánh", "kind": "dataset", "requires": ["wer"], "origin": {"type": "prior", "evidence": "\"Model evaluation is conducted on three public Vietnamese test sets, consisting of GigaSpeech 2 [10], Common Voice 17.0 [30], and FLEURS [31]\" (p.3)"}, "short": "GigaSpeech 2 (YouTube), Common Voice 17.0 và FLEURS (đọc to); so với Whisper, MMS, GigaSpeech 2, Google USM, Azure.", "summary": "Ba test set tiếng Việt công khai: GigaSpeech 2 lấy từ YouTube (cùng nguồn với dữ liệu pre-train), Common Voice và FLEURS là giọng đọc to. Hệ so sánh gồm model mở và dịch vụ thương mại.", "visuals": [{"type": "table", "title": "WER (%) trên 3 test set (Table 3, p.4)", "head": ["Hệ", "Tham số (M)", "GigaSpeech 2", "Common Voice", "FLEURS", "Avg"], "rows": [["Whisper large-v3", "1542", "17.94", "13.74", "8.59", "16.44"], ["GigaSpeech 2", "68", "14.72", "18.81", "13.50", "14.75"], ["Google USM", "-", "13.28", "12.46", "11.75", "13.03"], ["Azure Speech", "-", "11.86", "10.21", "11.88", "11.78"], ["VietASR vòng 3", "68", "7.68", "11.46", "10.96", "8.31"]], "src": "Table 3 (p.4)"}], "why": "Để đọc đúng kết luận \"vượt Whisper large-v3\": VietASR thắng rõ ở GigaSpeech 2, còn ở FLEURS thì Whisper large-v3 thấp hơn (8.59 so với 10.96).", "inPaper": "Section 4.1 (p.3), Section 4.2, Table 3 (p.4)", "body": "- Avg có trọng số theo số từ, và GigaSpeech 2 chiếm phần lớn, nên Avg nghiêng về domain YouTube. Tác giả cũng quy kết quả tốt trên GigaSpeech 2 cho việc cùng domain với dữ liệu pre-train (p.4).\n- Không test set nào giống LifeMate (câu lệnh ngắn, nhiều tên riêng/số, có giọng tổng hợp TTS) [nhận xét của AI].\n- Lưu ý license khi chọn ASR cho LifeMate: ChunkFormer-CTC-Large-Vie dùng CC BY-NC 4.0 (không cho thương mại) nên không hợp rule OSI của cuộc thi [nguồn khác]."}, "hasDeepDive": false, "isTarget": false, "prev": "wer", "next": "vad-segmentation"};
+const {esc, md} = RP;
+const KEY = `rp:${DATA.topic}:learned`;
+let learned = new Set(RP.store.get(KEY, []));
+const ORIGIN = {prior: "Có từ trước, paper dùng lại", adapted: "Kế thừa có thay đổi", renamed: "Tên mới cho phương pháp đã có", new: "Tác giả đề xuất mới"};
+const L = DATA.labels;
+const page = id => `${id === "__target" ? "_target" : id}.html`;
+const nodeLink = (id, text) => L[id] ? `<a href="${page(id)}">${esc(text || L[id])}</a>` : esc(text || id);
+const sec = (k, html) => html ? `<div class="sec"><div class="k">${k}</div>${html}</div>` : "";
+const n = DATA.node, o = n.origin || {}, f = o.from;
+const pager = `<div class="sec pager">${DATA.prev ? `<a href="${page(DATA.prev)}"><small>← Trước</small>${esc(L[DATA.prev])}</a>` : "<span></span>"}` +
+  (DATA.next ? `<a class="next" href="${page(DATA.next)}"><small>Tiếp theo →</small>${esc(L[DATA.next])}</a>` : "<span></span>") + `</div>`;
+const crumbs = `<div class="crumbs"><a href="../roadmap.html">← Roadmap</a>${DATA.hasDeepDive ? `<a href="../deep-dive.html">Deep dive</a>` : ""}<span class="muted">${esc(DATA.paper.title)}</span></div>`;
+
+let html;
+if (DATA.isTarget) {
+  html = crumbs + `<h1>${esc(n.label)}</h1><div class="row"><span class="badge acc">Solution của paper</span></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Cần nắm trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) + pager;
+} else {
+  html = crumbs +
+    `<h1>${esc(n.label)}</h1><div class="row"><span class="badge">${esc(n.kind || "")}</span><span class="badge ${o.type === "new" ? "solid" : o.type === "prior" ? "" : "acc"}">${esc(ORIGIN[o.type] || "")}</span>${n.inPaper ? `<span class="src">Trong paper: ${esc(n.inPaper)}</span>` : ""}</div>` +
+    `<div class="sec"><label class="done"><input type="checkbox" id="done" ${learned.has(n.id) ? "checked" : ""}> Đã học xong node này</label></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Công thức", (n.formulas || []).map(RP.formula).join("")) +
+    sec("Ví dụ", md(n.example, nodeLink)) +
+    sec("Vì sao cần cho paper này", md(n.why, nodeLink)) +
+    sec("Chi tiết", md(n.body, nodeLink)) +
+    sec("Nguồn gốc", `<div class="origin"><b>${esc(ORIGIN[o.type] || "")}</b>` +
+      (f ? `<br>${f.url ? `<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a>` : esc(f.title || "")} <span class="muted">${esc([f.authors, f.venue, f.year].filter(Boolean).join(", "))}</span>` : "") +
+      (o.evidence ? `<blockquote>${md(o.evidence, nodeLink)}</blockquote>` : "") + (o.note ? md(o.note, nodeLink) : "") + `</div>`) +
+    sec("Cần học trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) +
+    sec("Đọc thêm", n.links?.length ? `<ul>${n.links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a></li>`).join("")}</ul>` : "") +
+    pager;
+}
+document.getElementById("detail").innerHTML = html;
+document.title = `${n.label} · Roadmap`;
+const done = document.getElementById("done");
+if (done) done.onchange = () => { done.checked ? learned.add(n.id) : learned.delete(n.id); RP.store.set(KEY, [...learned]); };
+window.addEventListener("load", () => RP.math());
+</script>
+</body>
+</html>

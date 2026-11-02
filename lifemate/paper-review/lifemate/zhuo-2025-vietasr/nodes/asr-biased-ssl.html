@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ASR-biased SSL</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../_assets/common.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+.page{max-width:780px;margin:0 auto}
+.crumbs{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:14px;margin-bottom:14px}
+.detail h1{margin-bottom:6px}
+.detail .sec{margin-top:18px}
+.detail .sec>.k{font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px}
+.origin{border-radius:var(--r);padding:10px 14px;background:var(--soft);font-size:14px}
+.done{display:inline-flex;gap:8px;align-items:center;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:var(--r);background:var(--soft)}
+.pager{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+.pager a{flex:1;padding:10px 14px;border-radius:8px;box-shadow:var(--lift);text-decoration:none;font-size:14px}
+.pager a:hover{box-shadow:var(--lift-hi)}
+.pager a.next{text-align:right}
+.pager small{display:block;color:var(--mute);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="page detail" id="detail"></div></div>
+
+<script src="../../_assets/common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" defer></script>
+<script>
+const DATA = {"topic": "lifemate", "paper": {"id": "zhuo-2025-vietasr", "title": "VietASR: Achieving Industry-level Vietnamese ASR with 50-hour Labeled Data and Large-Scale Speech Pretraining", "venue": "Interspeech", "year": 2025, "url": "https://arxiv.org/abs/2505.21527"}, "labels": {"fbank": "Waveform → Fbank", "wer": "WER (word error rate)", "asr-encoder": "Encoder ASR và output theo frame", "bpe": "BPE word pieces", "rnnt": "RNN-T (transducer)", "pruned-rnnt": "Pruned RNN-T loss", "zipformer": "Zipformer", "ssl": "Self-supervised learning (SSL) cho speech", "kmeans-codebook": "Codebook k-means (nhãn cụm)", "hubert": "HuBERT", "hubert-on-fbank": "Masked prediction trên Fbank + loss cross-entropy", "asr-biased-ssl": "ASR-biased SSL", "supervised-codebook": "Supervised codebook", "multi-iteration": "Lặp nhiều vòng", "vad-segmentation": "VAD + cắt đoạn tự động", "streaming-asr": "Streaming ASR (chunk)", "test-sets": "Test set và hệ so sánh", "__target": "VietASR: Zipformer + HuBERT-style SSL với supervised codebook, lặp 3 vòng"}, "node": {"id": "asr-biased-ssl", "label": "ASR-biased SSL", "kind": "khái niệm", "requires": ["hubert"], "origin": {"type": "prior", "from": {"title": "Supervision-Guided Codebooks for Masked Prediction in Speech Pre-training (PBERT)", "authors": "Wang, Wang, Wu, et al.", "venue": "Interspeech", "year": 2022, "url": "https://arxiv.org/abs/2206.10125"}, "evidence": "\"several studies [14, 17–19] have explored ASR-biased HuBERT, where the learning target is derived from a supervised model rather than being purely self-supervised\" (p.2)"}, "short": "Lấy nhãn pre-train từ một model có giám sát (ASR, phoneme recognizer) thay vì thuần k-means trên spectrum.", "summary": "Nhãn k-means trên spectrum không gắn với âm vị hay nghĩa, nên pre-train học chậm những gì ASR cần. Hướng ASR-biased dùng một model có giám sát để tạo nhãn, để mục tiêu pre-train sát với ASR hơn.", "visuals": [{"type": "table", "title": "Các cách trước VietASR (theo Section 2, p.2)", "head": ["Công trình", "Nguồn nhãn", "Hạn chế paper nêu"], "rows": [["PBERT [14]", "phoneme recognizer riêng", "cần thêm model nhận dạng âm vị"], ["[17]", "k-means trên feature của ASR train trên nhiều dữ liệu", "tiếng ít tài nguyên khó có ASR mạnh"], ["[18, 19]", "k-means trên model đã fine-tune, từ vòng 2", "vòng 1 vẫn k-means spectrum: lệch ASR, tốn tính toán"]], "src": "Section 2 (p.2)"}], "why": "Đặt VietASR vào đúng chỗ: VietASR là một biến thể ASR-biased SSL, bỏ được vòng 1 dựa trên spectrum.", "inPaper": "Section 2 (p.2)", "body": "- [18] ASBERT (SLT 2023), [19] Biased SSL for ASR (Interspeech 2023), [17] HuBERT with academic compute (Interspeech 2023) (danh mục tham khảo, p.5).", "links": [{"title": "PBERT (arXiv 2206.10125)", "url": "https://arxiv.org/abs/2206.10125"}]}, "hasDeepDive": false, "isTarget": false, "prev": "hubert", "next": "bpe"};
+const {esc, md} = RP;
+const KEY = `rp:${DATA.topic}:learned`;
+let learned = new Set(RP.store.get(KEY, []));
+const ORIGIN = {prior: "Có từ trước, paper dùng lại", adapted: "Kế thừa có thay đổi", renamed: "Tên mới cho phương pháp đã có", new: "Tác giả đề xuất mới"};
+const L = DATA.labels;
+const page = id => `${id === "__target" ? "_target" : id}.html`;
+const nodeLink = (id, text) => L[id] ? `<a href="${page(id)}">${esc(text || L[id])}</a>` : esc(text || id);
+const sec = (k, html) => html ? `<div class="sec"><div class="k">${k}</div>${html}</div>` : "";
+const n = DATA.node, o = n.origin || {}, f = o.from;
+const pager = `<div class="sec pager">${DATA.prev ? `<a href="${page(DATA.prev)}"><small>← Trước</small>${esc(L[DATA.prev])}</a>` : "<span></span>"}` +
+  (DATA.next ? `<a class="next" href="${page(DATA.next)}"><small>Tiếp theo →</small>${esc(L[DATA.next])}</a>` : "<span></span>") + `</div>`;
+const crumbs = `<div class="crumbs"><a href="../roadmap.html">← Roadmap</a>${DATA.hasDeepDive ? `<a href="../deep-dive.html">Deep dive</a>` : ""}<span class="muted">${esc(DATA.paper.title)}</span></div>`;
+
+let html;
+if (DATA.isTarget) {
+  html = crumbs + `<h1>${esc(n.label)}</h1><div class="row"><span class="badge acc">Solution của paper</span></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Cần nắm trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) + pager;
+} else {
+  html = crumbs +
+    `<h1>${esc(n.label)}</h1><div class="row"><span class="badge">${esc(n.kind || "")}</span><span class="badge ${o.type === "new" ? "solid" : o.type === "prior" ? "" : "acc"}">${esc(ORIGIN[o.type] || "")}</span>${n.inPaper ? `<span class="src">Trong paper: ${esc(n.inPaper)}</span>` : ""}</div>` +
+    `<div class="sec"><label class="done"><input type="checkbox" id="done" ${learned.has(n.id) ? "checked" : ""}> Đã học xong node này</label></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Công thức", (n.formulas || []).map(RP.formula).join("")) +
+    sec("Ví dụ", md(n.example, nodeLink)) +
+    sec("Vì sao cần cho paper này", md(n.why, nodeLink)) +
+    sec("Chi tiết", md(n.body, nodeLink)) +
+    sec("Nguồn gốc", `<div class="origin"><b>${esc(ORIGIN[o.type] || "")}</b>` +
+      (f ? `<br>${f.url ? `<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a>` : esc(f.title || "")} <span class="muted">${esc([f.authors, f.venue, f.year].filter(Boolean).join(", "))}</span>` : "") +
+      (o.evidence ? `<blockquote>${md(o.evidence, nodeLink)}</blockquote>` : "") + (o.note ? md(o.note, nodeLink) : "") + `</div>`) +
+    sec("Cần học trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) +
+    sec("Đọc thêm", n.links?.length ? `<ul>${n.links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a></li>`).join("")}</ul>` : "") +
+    pager;
+}
+document.getElementById("detail").innerHTML = html;
+document.title = `${n.label} · Roadmap`;
+const done = document.getElementById("done");
+if (done) done.onchange = () => { done.checked ? learned.add(n.id) : learned.delete(n.id); RP.store.set(KEY, [...learned]); };
+window.addEventListener("load", () => RP.math());
+</script>
+</body>
+</html>

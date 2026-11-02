@@ -1,0 +1,6 @@
+- [Setup env FIRST](setup-env.md) — run `bash scripts/setup_env.sh` at session start; installs .venv/kaggle if missing, if auth fails ask user to `! .venv/bin/kaggle auth login`
+- READ FIRST when resuming: `PROGRESS.md` holds full progress, scores, running jobs, next steps (keep it updated after each run)
+- [Working rules](working-rules.md) — Vietnamese replies, Kaggle token/private datasets, no model downloads, max 2 sessions, Edit/Write only, user submits
+- [Give ETA](feedback-eta.md) — always state clock-time ETA (GMT+7) when pushing/reporting Kaggle runs
+- [LifeMate challenge](lifemate-challenge.md) — Zalo AI 2026 LifeMate: constraints (<6B, LLM<5B, 30s, offline, OSI) and deadlines
+- [LifeMate Kaggle runs](lifemate-kaggle-runs.md) — how I push/run on the user's Kaggle via CLI; score history v1→sft1

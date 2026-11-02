@@ -1,0 +1,117 @@
+/* Notion-style light theme: white page, warm grey text, few borders; sections are separated by
+   whitespace and hairlines, and grey tag backgrounds replace outlined badges. */
+:root{
+  --lift:0 0 0 1px rgba(15,15,15,.12),0 2px 4px rgba(15,15,15,.05),0 8px 20px rgba(15,15,15,.06);
+  --lift-hi:0 0 0 1px rgba(15,15,15,.16),0 4px 8px rgba(15,15,15,.07),0 14px 32px rgba(15,15,15,.10);
+  --page:#fbfbfa;--bg:#ffffff;--soft:#f7f7f5;--tag:#f1f1ef;--line:#dcdbd7;--line2:#c4c2bc;
+  --ink:#37352f;--mute:#787774;--faint:#9b9a97;--acc:#337ea9;--acc-soft:#e7f3f8;
+  --ok:#448361;--warn:#cb912f;--bad:#d44c47;
+  --r:6px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--page);color:var(--ink);font:15px/1.65 Inter,"Be Vietnam Pro",system-ui,sans-serif}
+a{color:inherit;text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--ink)}
+h1 a,h2 a{text-decoration:none}
+h1 a:hover,h2 a:hover{text-decoration:underline}
+h1{font-size:22px;line-height:1.3;margin:0 0 6px}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:16px 0 6px}
+p{margin:0 0 10px}
+code,.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:13px}
+code{background:var(--soft);padding:1px 5px;border-radius:4px}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 80px}
+.sub{color:var(--mute);margin:0 0 16px}
+.muted{color:var(--mute)}
+.small{font-size:13px}
+/* Blocks are lifted with a soft shadow instead of outlined, so each one reads as a separate unit. */
+.card{padding:20px;background:var(--bg);border-radius:10px;margin-bottom:18px;box-shadow:var(--lift)}
+.card.raised{box-shadow:var(--lift-hi)}
+.stack>*+*{margin-top:12px}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.badge{display:inline-block;font-size:12px;line-height:1.6;padding:0 7px;border-radius:4px;color:#5f5e5b;background:var(--tag);white-space:nowrap}
+.badge.acc{background:var(--acc-soft);color:var(--acc)}
+.badge.solid{color:var(--ink);font-weight:600}
+.badge.ok{background:#edf3ec;color:var(--ok)}
+.badge.warn{background:#fbf3db;color:#956400}
+.badge.bad{background:#fdebec;color:var(--bad)}
+.src{font-size:12px;color:var(--faint);white-space:nowrap}
+button,.btn{font:inherit;font-size:13px;padding:4px 10px;border-radius:var(--r);border:1px solid var(--line2);background:var(--bg);color:var(--ink);cursor:pointer;text-decoration:none}
+button:hover,.btn:hover{background:var(--soft)}
+button.on{background:var(--tag);border-color:var(--tag);font-weight:600}
+input[type=checkbox]{accent-color:var(--acc);width:15px;height:15px;cursor:pointer}
+/* Tables sit in an outlined, lightly shadowed box; header row is tinted so it reads apart from the data. */
+.tablewrap{overflow-x:auto;border:1px solid var(--line2);border-radius:8px;box-shadow:0 1px 3px rgba(15,15,15,.06);margin:10px 0;background:var(--bg)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:8px 12px;text-align:left;vertical-align:top}
+td{border-top:1px solid var(--line)}
+th+th,td+td{border-left:1px solid var(--line)}
+th{font-weight:600;color:var(--ink);font-size:12.5px;background:#efefec;border-bottom:1px solid var(--line2)}
+tbody tr:nth-child(even) td{background:#fafaf8}
+tbody tr:first-child td{border-top:none}
+blockquote{margin:8px 0;padding:2px 14px;border-left:3px solid var(--ink);color:var(--ink)}
+
+/* flow: steps laid out in HTML so long labels wrap instead of overflowing an SVG */
+.flow{display:flex;flex-wrap:nowrap;align-items:stretch;gap:0;margin:8px 0}
+.flow .step{flex:1 1 0;min-width:0;border:1px solid var(--line2);border-radius:6px;padding:7px 10px;background:var(--soft)}
+.flow .step b{display:block;font-size:13px;font-weight:600}
+.flow .step span{display:block;font-size:12px;color:var(--mute);line-height:1.45;margin-top:2px}
+.flow .step.new{background:var(--acc-soft);border-color:var(--acc)}
+.flow .arrow{flex:0 0 22px;display:flex;align-items:center;justify-content:center;color:var(--mute);font-size:16px}
+@media (max-width:640px){
+  .flow{flex-direction:column}
+  .flow .step{max-width:none;flex:0 0 auto}
+  .flow .arrow{flex-basis:18px;transform:rotate(90deg)}
+}
+
+/* horizontal bars: widths are percentages, so they cannot overflow */
+.bars{display:grid;grid-template-columns:minmax(90px,30%) 1fr auto;gap:6px 10px;align-items:center;font-size:13px}
+.bars .track{background:var(--soft);border-radius:4px;height:18px}
+.bars .fill{background:var(--line2);height:100%;border-radius:4px}
+.bars .fill.hi{background:var(--acc)}
+.bars .val{font-size:12px;min-width:40px;text-align:right}
+
+.checks{list-style:none;padding:0;margin:0}
+.checks li{padding:6px 0 6px 26px;position:relative;border-bottom:1px solid var(--line)}
+.checks li::before{position:absolute;left:4px;top:6px;font-weight:700}
+.checks li.ok::before{content:"✓";color:var(--ok)}
+.checks li.warn::before{content:"!";color:var(--warn)}
+.checks li.bad::before{content:"✗";color:var(--bad)}
+
+.sym{font-size:13.5px}
+.formula{padding:10px 12px;background:var(--soft);border-radius:8px;overflow-x:auto;margin:6px 0}
+.say{font-size:14px;margin:6px 0 8px;padding:8px 12px;border-radius:8px;background:var(--acc-soft)}
+
+/* visual blocks: vectors, 2D plot, step-by-step calculation, side-by-side comparison */
+h3{font-size:14px;margin:14px 0 8px}
+.vecs{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 12px;margin:6px 0}
+.vec{display:flex;flex-direction:column;gap:4px}
+.vlabel{font-size:12.5px;color:var(--mute);font-weight:500}
+.vec.hl .vlabel{color:var(--ink);font-weight:700}
+.cells{display:flex;border:1.5px solid var(--line2);border-radius:6px;overflow:hidden}
+.vec.hl .cells{border-color:var(--ink)}
+.cell{min-width:44px;padding:7px 6px;text-align:center;font:600 13px "JetBrains Mono",monospace;border-left:1px solid var(--line)}
+.cell:first-child{border-left:none}
+.vnote{font-size:11.5px;color:var(--faint)}
+.vop{font-size:22px;color:var(--mute);padding-bottom:4px}
+.vcap{font-size:13.5px;color:var(--mute);margin-top:6px}
+.vcap p{margin:0}
+.plot{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.plot svg{background:var(--bg);border:1px solid var(--line);border-radius:8px;max-width:100%;height:auto}
+.plot svg .ax{stroke:var(--line2);stroke-width:1}
+.plot svg .axl{font:11px Inter,sans-serif;fill:var(--mute)}
+.plot svg .vl{font:600 12px Inter,sans-serif}
+.plot svg .pl{font:600 11px Inter,sans-serif}
+.plot .vcap{flex:1;min-width:200px}
+.steps{list-style:none;counter-reset:s;padding:0;margin:6px 0}
+.steps li{counter-increment:s;position:relative;padding:8px 10px 8px 40px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;background:var(--bg)}
+.steps li::before{content:counter(s);position:absolute;left:10px;top:8px;width:20px;height:20px;border-radius:50%;background:var(--tag);font-size:12px;font-weight:600;text-align:center;line-height:20px}
+.steps .sx{margin-top:4px}
+.steps .sx .mono{background:var(--soft);padding:2px 6px;border-radius:4px}
+.steps .sr{font:700 13px "JetBrains Mono",monospace;color:var(--acc)}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.cmpc{border:1px solid var(--line);border-radius:8px;padding:4px 12px 10px;background:var(--bg)}
+figure{margin:8px 0}
+figure img{max-width:100%;border:1px solid var(--line);border-radius:6px}
+figcaption{font-size:13px;color:var(--mute)}

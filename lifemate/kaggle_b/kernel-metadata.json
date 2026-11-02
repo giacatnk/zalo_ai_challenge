@@ -1,0 +1,20 @@
+{
+  "id": "jasonhoang666/zalo-ai-b",
+  "title": "zalo-ai-b",
+  "code_file": "lifemate_pipeline.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": "true",
+  "enable_gpu": "true",
+  "enable_internet": "true",
+  "machine_shape": "NvidiaTeslaT4",
+  "dataset_sources": [
+    "jasonhoang666/lifemate-data",
+    "jasonhoang666/qwen3-4b-sft1"
+  ],
+  "competition_sources": [],
+  "kernel_sources": [
+    "jasonhoang666/zalo-ai-asr-lora"
+  ],
+  "model_sources": []
+}

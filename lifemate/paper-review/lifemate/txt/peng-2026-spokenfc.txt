@@ -1,0 +1,1644 @@
+=== page 1 ===
+Spoken Function Calling: A New Perspective on Spoken
+Language Understanding for Large Audio Language Models
+Yuezhang Peng∗
+Shanghai Jiao Tong University
+Shanghai, China
+Token Foundry, Alibaba Group
+Hangzhou, China
+Yuxin Liu∗
+Shanghai Jiao Tong University
+Shanghai, China
+Changfeng Gao
+Token Foundry, Alibaba Group
+Beijing, China
+Zhifu Gao
+Token Foundry, Alibaba Group
+Hangzhou, China
+Qian Chen
+Token Foundry, Alibaba Group
+Hangzhou, China
+Xiangang Li
+Token Foundry, Alibaba Group
+Hangzhou, China
+Xie Chen†
+Shanghai Jiao Tong University
+Shanghai, China
+Shanghai Innovation Institute
+Shanghai, China
+Abstract
+Spoken Language Understanding (SLU) is the core component of
+task-oriented dialogue systems and a pivotal link in achieving seam-
+less human-agent interaction. While traditional SLU can effectively
+extract user semantics for closed-set tasks after in-domain super-
+vised fine-tuning, it faces significant challenges in leveraging in-
+context learning for open-domain tasks due to its ambiguous rule
+definitions. This work proposes Spoken Function Calling (SFC), a
+novel semantic understanding perspective that optimizes semantic
+understanding with structured rule definitions, to evolve beyond
+traditional closed-set SLU. Specifically, we curate and extend a suite
+of spoken functions based on traditional SLU datasets, construct a
+multi-agent system to synthesize the SFC-Bench dataset, evaluate
+the performance of Large Language Models (LLMs) and Large Au-
+dio Language Models (LALMs), and enhance the SFC capabilities of
+LALMs through post-training. Experiments demonstrate that SFC
+outperforms traditional SLU, substantially enhancing the semantic
+extraction accuracy for LLMs and LALMs.1
+CCS Concepts
+• Computing methodologies →Natural language processing;
+Speech recognition; Discourse, dialogue and pragmatics.
+Keywords
+Spoken Language Understanding, Spoken Function Calling, Large
+Audio Language Models, In-Context Learning
+∗Equal Contribution.
+†Corresponding author.
+1Code and data: https://github.com/QwenAudio/FunResearch/tree/main/SpokenFC.
+This work is licensed under a Creative Commons Attribution-NonCommercial-
+NoDerivatives 4.0 International License.
+MM ’26, Rio de Janeiro, Brazil
+© 2026 Copyright held by the owner/author(s).
+ACM ISBN 979-8-4007-2213-4/2026/11
+https://doi.org/10.1145/3767308.3836468
+Traditional SLU Task
+Speech Query: Could I maybe add a schedule for a dentist ap-
+pointment on July 20th at 3 PM in Paris?
+Environmental Context: Date=2024-07-19 19:04:19, Loc=Paris
+Proposed SFC Task
+Available Intent & Slot Pool
+Available Function Pool
+add_recur_schedule
+add_schedule
+other slots…
+content
+"July 20th
+at 3 PM"
+time
+location
+start_time
+？
+？
+SLU CONFUSION
+Ambiguous rule definition 
+Slot values face ambiguity 
+when mapping to overlapping 
+candidates (e.g., "time" vs. 
+"start_time")
+SFC SUCCESS
+Precise structured binding
+Parameter values are 
+determined by the specific 
+schema constraints within the 
+selected function
+• add_schedule(content, time, location)
+• add_recur_schedule(content,start_time,
+frequency) ...
+Selected Function: 
+• add_schedule (content, time, location)
+dentist 
+appoint.
+2024-07-
+20 15:00:00
+Paris
+other intents…
+Figure 1: Comparison of traditional SLU and proposed SFC.
+SFC resolves parameter ambiguity through a precise and
+structured function definition.
+ACM Reference Format:
+Yuezhang Peng, Yuxin Liu, Changfeng Gao, Zhifu Gao, Qian Chen, Xiangang
+Li, and Xie Chen. 2026. Spoken Function Calling: A New Perspective on
+Spoken Language Understanding for Large Audio Language Models. In
+Proceedings of the 34th ACM International Conference on Multimedia (MM
+’26), November 10–14, 2026, Rio de Janeiro, Brazil. ACM, New York, NY, USA,
+9 pages. https://doi.org/10.1145/3767308.3836468
+1
+Introduction
+Spoken Language Understanding (SLU) parses the semantic in-
+formation of user queries through intent classification and slot
+filling to facilitate the execution of downstream tasks [35]. This
+paradigm has been extensively deployed in voice assistants across
+smartphones, smart homes, and automotive systems [3, 21, 25].
+However, traditional SLU tasks operate under the assumption that
+models possess prior knowledge of all predefined intent and slot
+schemas. While models can memorize these rules via in-domain
+Supervised Fine-Tuning (SFT) to achieve superior performance,
+arXiv:2608.05126v2  [cs.CL]  27 Sep 2026
+
+=== page 2 ===
+MM ’26, November 10–14, 2026, Rio de Janeiro, Brazil
+Yuezhang Peng et al.
+User’s Speech Query: I need to update my weekly reminder from “Take 
+out the trash” to “Replace the kitchen sponge”, starting this Friday at 7 AM.
+Available Spoken Functions: update_reminder_time, 
+ﬁnd_recurring_reminder_by_time, ﬁnd_location_reminder_by_location, 
+update_recurring_reminder_content, update_location_reminder_time
+SFC Result: update_recurring_reminder_content(content="Take out the 
+trash", new_content=”Replace the kitchen sponge", time="2025-04-04 
+07:00:00", frequency="weekly")
+Single-Turn Spoken Function Calling
+User’s Speech Query: Could you search Wikipedia for the history of the 
+Eiffel Tower and then change my weekly reminder from “Check the news” to 
+“Read the latest article about it,” starting tomorrow morning at 8 AM?
+Available Spoken Functions:
+skip_reminder, search_wikipedia, ﬁnd_reminder_by_keyword, 
+update_location_reminder_time, update_recurring_reminder_content
+Single-Turn Multiple Spoken Function Calling
+User’s Speech Query: Find my reminder, tell me the travel time from 
+123 Queen’s Road Central, Hong Kong to Hong Kong International Airport.
+Multi-Turn Spoken Function Calling
+SFC Result: search_wikipedia(query="history of the Eiﬀel Tower"), 
+update_recurring_reminder_content(content="Check the news", 
+new_content="Read the latest article about the Eiﬀel Tower", time="2023-02-
+14 08:00:00", frequency="weekly")
+User’s Speech Query: Reminder about gym.
+Env: {"location": "Paris", "datetime": "2025-04-04 02:35:28, Friday"}
+Env: {"location": "Seoul", "datetime": "2023-02-13 19:04:19, Monday"}
+Env: {"location": "Hong Kong", "datetime": "2026-05-31 03:00:33, Sunday"}
+SFC Result:
+get_travel_time_between_locations(location1=“123 Queen’s Road Central, 
+Hong Kong”, location2=“Hong Kong International Airport”), 
+ﬁnd_recurring_reminder_by_keyword(keyword="NAN")
+Stage 1
+Available Spoken Functions:
+get_distance_between_locations, update_recurring_reminder_time, 
+get_navigation_directions, delete_recurring_reminder, 
+find_recurring_reminder_by_keyword, get_travel_time_between_locations
+SFC Result:
+get_travel_time_between_locations(location1=“123 Queen’s Road Central, 
+Hong Kong”, location2=“Hong Kong International Airport”), 
+ﬁnd_recurring_reminder_by_keyword(keyword="gym")
+Stage 2
+Figure 2: Example of Multi-Intent and Multi-Turn Spoken Function Calling tasks.
+they struggle with open vocabulary and out-of-domain tasks [25].
+Even state-of-the-art (SOTA) Large Language Models (LLMs) and
+Large Audio-Language Models (LALMs) fail to achieve satisfactory
+results on such tasks through In-Context Learning (ICL) [4]. In
+this context, we define “open-domain" as the capability of a model
+to understand and execute tasks through ICL based on dynamic
+functional descriptions, rather than relying on in-domain SFT to
+pre-memorize SLU schemas.
+Recently, function calling has emerged as a transformative par-
+adigm for semantic parsing and task execution [23, 24]. Unlike
+traditional SLU, which requires agents to pre-memorize rigid rules,
+function calling enables LLMs to interpret function definitions
+dynamically through ICL and structured prompts. This approach fa-
+cilitates the autonomous invocation of the Model Context Protocol
+(MCP) [11] for diverse open-domain tasks, bypassing the need for
+SFT on specific functions. Inspired by the success of function calling
+in open-domain scenarios, we investigate a pivotal question: Can
+Spoken Function Calling (SFC) evolve beyond traditional SLU
+to enhance the semantic extraction performance of agents?
+However, addressing this question presents a critical challenge:
+the lack of SFC datasets that correspond to traditional SLU
+tasks. Specifically, existing LLMs function call datasets focus on
+complex reasoning within code or mathematics, which does not
+align with the requirements of traditional SLU. Furthermore, queries
+and tools designed for text-centric tasks lack the inherent uncer-
+tainty and linguistic flexibility of human speech.
+In this work, we leverage SLU datasets and a multi-agent system
+to construct SFC-Bench, the first large-scale SFC dataset. Through
+comparative experiments, we demonstrate that SFC is a more suit-
+able perspective for LALM agents than traditional SLU, as shown
+in Figure 1. We further establish a benchmark to investigate the
+performance and limitations of LLMs and LALMs on SFC tasks of
+varying levels. In summary, our key contributions are listed below.
+• Perspective Shift: We propose Spoken Function Calling as a
+novel perspective for task-oriented spoken semantics extraction,
+to extend traditional closed-set SLU based on intent classification
+and slot filling in the agent era.
+• Post-training Optimization: We investigate reinforcement
+learning (RL) based post-training strategies for LALMs and pro-
+pose a fine-grained reward method. Leveraging these strategies,
+we develop SpokenFC-7B through post-training on a compre-
+hensive synthetic dataset.
+• Dataset Construction: We introduce SFC-Bench, the first large-
+scale SFC dataset. Starting from a curated tool set of 300 spoken
+functions derived from existing SLU datasets, we employ a multi-
+agent system to synthesize multi-level queries and labels.
+• Empirical Validation: Our experiments confirm that: 1) SFC
+serves as a more effective semantic understanding method for
+LALMs compared to traditional SLU. 2) Even SOTA LALMs still
+face challenges in high-level SFC tasks involving multi-intent and
+ambiguous semantics. 3) SpokenFC-7B outperforms powerful
+closed-source models on SFC tasks while maintaining robust
+performance on speech recognition and audio reasoning.
+2
+Related Work
+2.1
+Traditional SLU
+2.1.1
+LLMs for SLU. LLMs pre-trained under the scaling law [14]
+exhibit emergent reasoning and generalization capabilities across
+various Natural Language Processing (NLP) tasks, successfully ad-
+dressing complex problems in question-answering [47], mathemat-
+ics [20], and coding [6]. Recent research explores the application
+of LLMs to SLU tasks. Early research [9] investigates using ICL
+
+=== page 3 ===
+Spoken Function Calling
+MM ’26, November 10–14, 2026, Rio de Janeiro, Brazil
+for intent classification and slot filling, demonstrating that while
+LLMs perform commendably in intent classification, they still face
+challenges with the more complex structural definitions of slot fill-
+ing. Whisma [17] employs a Whisper [31] encoder and Llama-3 [8]
+decoder with modality alignment training, enabling zero-shot SLU
+capabilities that outperform traditional pipeline methods. Further-
+more, MAC-SLU [25] establishes a unified benchmark for LLMs and
+LALMs on SLU, indicating that while current LLMs and LALMs can
+perform well on sub-tasks via ICL (e.g., isolated intent classification
+or slot filling), their overall accuracy remains low and significantly
+lags behind models optimized through SFT.
+2.1.2
+SLU Datasets. SLU datasets primarily include single-intent
+benchmarks such as ATIS, SNIPS, FSC, and SLURP [3, 7, 10, 21],
+as well as multi-intent datasets like MixATIS and MixSNIPS [29].
+The ATIS [10] dataset focuses on simple voice queries for flight
+information with only 16 intent categories. SNIPS [7] and FSC [21]
+target smart home scenarios but remain limited in scope, featuring
+only 7 and 13 intents, respectively. The simplicity and homogeneity
+of ATIS, SNIPS, and FSC allow even non-LLM-based SLU models
+to achieve over 95% overall accuracy [28]. SLURP [3] is currently
+the most widely used large-scale SLU dataset, expanding the intent
+categories to 46. In the context of Chinese SLU, MAC-SLU [25] is
+derived from text commands in the automotive cabin with speech
+synthesized via Text-to-Speech (TTS) models. MAC-SLU comprises
+8 domains, 81 intents, and 192 slots, including multi-intent data
+with up to five concurrent intents, surpassing previous datasets
+in both diversity and complexity. Furthermore, although dialogue
+state tracking [38, 39] is inherently linked with SLU, and exist-
+ing benchmarks like MTOP [16] and MultiWOZ [5] have adopted
+function-calling structures, their scope is restricted to text-based,
+multi-turn dialogues. In contrast, this work concentrates on end-
+to-end semantic understanding specifically for the speech modality
+and the precise invocation of spoken tools, presenting fundamental
+differences in both input modality and task objectives.
+2.2
+Function Calling
+2.2.1
+LLMs for Function Calling. Function calling empowers LLMs
+with tool-use capabilities to overcome inherent limitations such
+as hallucinations [13] and the lack of real-time information. Re-
+Act [43] represents a milestone in function calling, proposing an
+interleaved reasoning and acting paradigm. This approach guides
+models to generate reasoning traces before executing an action,
+leveraging Chain-of-Thought (CoT) [37] to plan tool calls and en-
+hancing the model’s ability to solve complex problems. Toolformer
+[32] introduces a self-supervised learning method that automat-
+ically inserts API calls into text and filters low-quality samples,
+teaching the model how to invoke external APIs without extensive
+human annotation. ToolRL [27] utilizes RL training to bolster the
+reasoning capabilities of LLMs during function calling, achieving
+performance superior to both base and SFT models.
+2.2.2
+Function Calling Datasets. Current function calling datasets
+include the Berkeley Function Calling Leaderboard (BFCL) [24],
+API-Bank [18], ToolBench [30], and ToolACE [19]. BFCL [24] evalu-
+ates function calling using a comprehensive dataset encompassing
+HuggingFace, TorchHub, and TensorHub APIs. API-Bank [18] pro-
+vides the first benchmark specifically for tool-augmented LLMs,
+covering capabilities ranging from single-turn queries to multi-turn
+dialogue management. ToolLLM [30] constructs ToolBench, a large-
+scale instruction-tuning dataset featuring over 16,000 functional
+RESTful APIs. ToolACE [19] utilizes an automated agentic pipeline
+to generate accurate, complex, and diverse tool-learning data, en-
+hancing function calling through data augmentation. Despite the
+proliferation of these datasets, they remain focused on code, math-
+ematics, and complex reasoning, which do not align with spoken
+semantic understanding scenarios. Furthermore, speech-centric
+datasets like StepEval-Audio-Toolcall [40] support only four cate-
+gories of tools, which is insufficient for a comprehensive evaluation
+of LALMs’ performance in SFC tasks.
+3
+Methodology
+3.1
+Spoken Function Calling
+Within the paradigm of ICL for LLMs and LALMs, the SLU based
+on intent classification and slot filling can be conceptualized as a
+semantic extraction and generation process grounded in instruction
+following. Its task mapping relationship can be defined as:
+𝐹SLU : (𝐴,𝑆int,𝑆slot) →𝑌SLU,
+(1)
+where 𝐴denotes the input raw speech signal, 𝑆int and 𝑆slot denote
+the predefined sets of candidate intent and slot labels, respectively.
+The output 𝑌SLU is represented as a set of semantic frames:
+𝑌SLU = {𝐼1, . . . , 𝐼𝑛, (𝑠1, 𝑣1), . . . , (𝑠𝑚, 𝑣𝑚)}.
+(2)
+In this structure, 𝐼𝑖∈𝑆int is the 𝑖-th identified intent label, while
+𝑠𝑗∈𝑆slot and 𝑣𝑗represent the corresponding slot name and its
+associated value, respectively.
+To accommodate the requirements for agents to handle open-
+domain SLU with customized intents and slots and to circumvent
+the reliance on memorizing rigid rules through SFT, this work
+proposes a novel perspective: Spoken Function Calling. SFC aims
+to map spoken instructions into a sequence of directly executable
+structured API calls:
+𝐹SFC : (𝐴, 𝐸, 𝐷func) →𝑌SFC.
+(3)
+In this definition, 𝐸explicitly introduces the environmental context,
+which serves to compensate for semantic omissions common in
+spoken language; 𝐷func represents the function definition schema
+following the OpenFunction protocol. The detailed output 𝑌SFC is
+manifested as a set of structured function calls:
+𝑌SFC = {𝑓𝑖(𝑘𝑖,1 = 𝑣𝑖,1,𝑘𝑖,2 = 𝑣𝑖,2, . . . ,𝑘𝑖,𝑚𝑖= 𝑣𝑖,𝑚𝑖)}𝑛
+𝑖=1,
+(4)
+where 𝑓𝑖is the retrieved function name, and 𝑘𝑖,𝑗and 𝑣𝑖,𝑗represent
+parameter keys and values. If a parameter is missing, it is assigned
+a value of NAN to trigger subsequent completion mechanisms. Com-
+pared to traditional SLU, the SFC perspective offers the following
+significant advantages: 1) Robustness of Structured Constraints:
+The schema constraints introduced via 𝐷func serve as strong prior
+knowledge, effectively resolving the boundary ambiguity issues en-
+countered by traditional SLU when performing complex parameter
+extraction. 2) Coupled Intent and Slot Parsing: The function
+definition 𝐷func simultaneously constrains the parsing of both func-
+tion names (intents) and parameter values (slots). This addresses a
+
+=== page 4 ===
+MM ’26, November 10–14, 2026, Rio de Janeiro, Brazil
+Yuezhang Peng et al.
+Query Agent
+Label Agent
+Speech Agent
+Complexity Levels
+Query Filtering
+Label Check
+Style Adaptation
+……
+Multi-Agent Generator
+Human-Agent Validation
+SFC Data Synthesis
+Multiple
+Agents
+Validator Agent
+Function
+Metadata
+Spoken Function Call
+Dataset
+Single-Intent SFC
+Multi-Intent SFC
+Multi-Turn SFC
+Generate
+Validate
+SLU
+Dataset
+Human Evaluation
+Test Set
+Train Set
+Environmental
+Context
+Figure 3: Multi-Agent System for Data Construction.
+critical limitation in traditional SLU, where the correlation between
+intents and slots is difficult to define explicitly.
+3.2
+RL-based Post-training
+This study adopts Group Relative Policy Optimization (GRPO) [34]
+as the core algorithm for post-training. Compared to the traditional
+Proximal Policy Optimization (PPO) [33] algorithm, a significant
+advantage of GRPO is that it eliminates the need to train an addi-
+tional large-scale value function model and substantially reduces
+the memory footprint and computational overhead.
+For each spoken query 𝑞, GRPO samples a group of outputs
+{𝑜1,𝑜2, . . . ,𝑜𝐺} from the old policy 𝜋𝜃old. The original objective
+function 𝐽GRPO(𝜃) is defined as follows:
+𝐽GRPO(𝜃) = E𝑞∼𝑃(𝑄),{𝑜𝑖}𝐺
+𝑖=1∼𝜋𝜃old
+ 1
+𝐺
+𝐺
+∑︁
+𝑖=1
+
+min
+
+𝜋𝜃(𝑜𝑖|𝑞)
+𝜋𝜃old (𝑜𝑖|𝑞) ˆ𝐴𝑖,
+clip
+
+𝜋𝜃(𝑜𝑖|𝑞)
+𝜋𝜃old (𝑜𝑖|𝑞) , 1 −𝜖, 1 + 𝜖
+
+ˆ𝐴𝑖
+
+−𝛽𝐷KL(𝜋𝜃∥𝜋ref)
+
+.
+(5)
+The advantage function ˆ𝐴𝑖for each output 𝑜𝑖is computed by nor-
+malizing the rewards within each group:
+ˆ𝐴𝑖= 𝑅𝑖−mean(R)
+std(R)
+,
+(6)
+where R = {𝑅1, 𝑅2, . . . , 𝑅𝐺} denotes the set of rewards for the cur-
+rent sampling group. RL for LLMs typically employs an exact match
+(EM) reward. To precisely characterize the structured features of
+SFC, we represent the generated sequence 𝑌gen and the ground-
+truth sequence 𝑌gt as sets of function calls:
+𝑅EM = I(𝑌gen = 𝑌gt),
+(7)
+where model output and ground truth are respectively defined as:
+(
+𝑌gen = { ˆ𝑓𝑖( ˆ𝑘𝑖,1 = ˆ𝑣𝑖,1, ˆ𝑘𝑖,2 = ˆ𝑣𝑖,2, . . . )} ˆ𝑛
+𝑖=1
+𝑌gt = {𝑓𝑗(𝑘𝑗,1 = 𝑣𝑗,1,𝑘𝑗,2 = 𝑣𝑗,2, . . . )}𝑛
+𝑗=1.
+(8)
+In this context, I(·) is the indicator function, while ˆ𝑓, ˆ𝑘, and ˆ𝑣de-
+note the generated function name, parameter key, and parameter
+value, respectively. Although the EM reward helps prevent reward
+hacking, it is overly restrictive for SFC tasks involving complex
+JSON structures, as it requires total identity across all components.
+This often leads to sparse rewards during early training stages, as
+the model struggles to hit all structured elements simultaneously,
+thereby causing slow convergence.
+To mitigate this, we propose a Fine-Grained reward method
+by decomposing the SFC task into three core sub-tasks: function
+name recognition, parameter key matching, and parameter value
+extraction. By providing positive feedback when a sub-task is per-
+formed correctly, we incentivize the model to master individual
+components before achieving full function call synthesis. The final
+reward 𝑅Fine-Grained is normalized to the [−1, 1] range by scaling the
+arithmetic mean of the three dimensions:
+𝑅Fine-Grained = 2 ·
+𝑟name + 𝑟keys + 𝑟values
+3
+
+−1
+(9)
+Function Name Reward (𝑟name): Evaluates the accuracy of intent
+recognition. It is measured by calculating the match ratio between
+the generated function names ˆ𝑓𝑖and the ground truth 𝑓𝑖:
+𝑟name = 1
+𝑛
+𝑛
+∑︁
+𝑖=1
+I( ˆ𝑓𝑖= 𝑓𝑖).
+(10)
+Parameter Key Matching Reward (𝑟keys): Measures the model’s
+command over the tool parameter structure. Let ˆ𝐾= {ˆ𝑘𝑗} be the
+set of generated keys and 𝐾= {𝑘𝑗} be the ground-truth keys. This
+is calculated using the Jaccard similarity:
+𝑟keys = | ˆ𝐾∩𝐾|
+| ˆ𝐾∪𝐾|
+.
+(11)
+Parameter Value Accuracy Reward (𝑟values): Evaluates the se-
+mantic consistency of parameter values for keys present in the
+intersection of ˆ𝐾and 𝐾. To provide denser feedback, we employ a
+fine-grained metric based on the normalized edit distance:
+𝑟values =
+Í
+𝑘∈ˆ𝐾∩𝐾(1 −EditDistance(ˆ𝑣𝑘, 𝑣𝑘))
+|𝐾|
+.
+(12)
+4
+Spoken Function Calling Dataset
+4.1
+Spoken Functions Collection
+The construction of the spoken function meta-dataset followed
+a structured three-step pipeline. Firstly, we aggregated a com-
+prehensive set of scenarios from widely utilized SLU benchmarks.
+Secondly, we leveraged Gemini-2.5 Pro to transform these sce-
+narios into standardized function definitions. To ensure functional
+
+=== page 5 ===
+Spoken Function Calling
+MM ’26, November 10–14, 2026, Rio de Janeiro, Brazil
+Personal
+Assistant
+(90)
+Reminder
+(24)
+Conference
+(20)
+Calendar
+(20)
+Alarm
+(14)
+Todo
+(12)
+Communication
+(56)
+Phone
+(12)
+Message
+(9)
+Video
+Call
+(10)
+Email
+(11)
+App
+Comm.
+(14)
+Travel &
+Transport
+(64)
+Hotel
+(16)
+Plane
+(14)
+Train
+(13)
+Taxi
+(11)
+Ship
+(10)
+Life
+Services
+(45)
+Restaurant
+(13)
+Food
+Delivery
+(14)
+Online
+Shopping
+(18)
+Information
+Retrieval
+(45)
+Movie
+(11)
+Ticket
+(12)
+General
+Info
+(22)
+Metrics
+Train
+Test-ID
+Test-OOD
+Level 1
+Avg. Question Length
+774.58
+728.41
+704.69
+Avg. Answer Length
+20.68
+18.35
+13.34
+Avg. Audio Length
+7.30
+6.62
+6.69
+Level 2
+Avg. Question Length
+708.80
+707.85
+744.68
+Avg. Answer Length
+30.14
+28.51
+26.93
+Avg. Audio Length
+10.65
+10.28
+10.21
+Level 3-1
+Avg. Question Length
+792.51
+808.55
+732.21
+Avg. Answer Length
+40.92
+44.93
+27.68
+Avg. Audio Length
+8.70
+8.65
+7.66
+Level 3-2
+Avg. Question Length
+827.57
+806.98
+793.87
+Avg. Answer Length
+73.96
+63.17
+52.71
+Avg. Audio Length
+13.15
+11.55
+11.32
+Figure 4: The domain distribution (left) and detailed statistics (right) of average question lengths (tokens), answer lengths
+(tokens), and audio lengths (seconds) across different levels of splits.
+Table 1: Sample distribution in the SFC-Bench dataset.
+Level
+Train
+Test-ID
+Test-OOD
+Multi-
+Intent
+Multi-
+Turn
+L1
+2,647
+902
+321
+✗
+✗
+L2
+817
+480
+94
+✓
+✗
+L3-1
+447
+317
+126
+✗
+✓
+L3-2
+588
+287
+52
+✓
+✓
+Total
+4,499
+1,986
+593
+–
+–
+diversity and logical complexity, we referenced established text-
+based function-calling benchmarks such as BFCL [24] and ToolACE
+[19]. The generated functions cover a broad spectrum of operations,
+ranging from standard CRUD (Create, Read, Update, Delete) actions
+to domain-specific complex logic. Thirdly, we conducted manual
+Refinement, where every generated function underwent rigorous
+human filtering and correction.
+In total, we curated 300 daily-life oriented spoken tools spanning
+5 domains and 21 scenarios, as presented in Figure 4 (left). To
+evaluate the model’s generalization capabilities, we partitioned the
+function set into 232 In-Distribution (ID) and 68 Out-of-Distribution
+(OOD) functions. Although the diversity and inherent complexity
+of the Test-OOD set are slightly lower than those of the Test-ID
+set due to this distribution, it does not compromise the validity of
+the experiments in assessing the model’s training generalization.
+All subsequent training was conducted solely on data synthesized
+from the ID subset, while evaluations were performed on both ID
+and OOD test sets to verify robustness and transferability.
+4.2
+SFC-Bench Construction
+Workflow Overview. The workflow for SFC-Bench construction
+is depicted in Figure 3. We synthesize the dataset by leveraging
+function metadata curated from SLU benchmarks, integrated with
+diverse environmental contexts to facilitate data augmentation.
+Multi-Agent Generator. Central to this workflow is the Multi-
+Agent Generator, powered by GPT-OSS-120B [1] with custom sys-
+tem prompts, which comprises three primary functional agents: 1)
+Query Agent: Generates text queries based on pre-selected func-
+tions and environmental context. For Level 3 data involving ambigu-
+ous semantics, an additional step of fuzzy rewriting is performed.
+2) Label Agent: Produces accurate function calls based on the cho-
+sen functions, environmental context, and queries. For ambiguous
+Level 3 queries, it generates function calls containing NAN parame-
+ters to assess potential hallucination. 3) Speech Agent: Introduces
+spoken language features (e.g., redundancy, self-corrections) and
+verbalizes technical formats (e.g., converting “abc@gmail.com" to
+“abc at gmail dot com"). Finally, it employs IndexTTS-2 [46] to syn-
+thesize speech queries by utilizing speaker timbre profiles from the
+LibriSpeech dataset [22] to mimic diverse vocal characteristics. To
+ensure experimental rigor, distinct speaker identities are assigned
+to the training, validation, and test sets, maintaining strict speaker
+isolation across the data splits.
+Validator. Data synthesized by the Multi-Agent Generator un-
+dergoes inspection and filtering by the validator agent to ensure
+logical and grammatical soundness, as well as consistency between
+queries and labels. For the test set, an additional human valida-
+tion phase is conducted to guarantee quality. The distribution of
+the SFC-Bench is summarized in Table 1. We generated over 7,000
+SFC data samples, covering a range of Multi-Intent and Multi-Turn
+scenarios.
+
+=== page 6 ===
+MM ’26, November 10–14, 2026, Rio de Janeiro, Brazil
+Yuezhang Peng et al.
+Table 2: Qualitative comparison between SFC and traditional SLU tasks. The Result column indicates the success (✓) or failure
+(✗) of each task based on the ground truth. Blue text highlights specific discrepancies.
+Task
+Model Prediction
+Ground Truth
+Result
+Case 1: Hey, delete my doctor appointment reminder for tomorrow morning at 8 AM, I’m in a rush!
+SFC
+delete_reminder(content = "doctor appointment", time = "2025-
+03-20 08:00:00")
+delete_reminder(content = "doctor appointment", time = "2025-
+03-20 08:00:00")
+✓
+SLU
+"intent": "delete_reminder", "slots": { "content": "doctor appoint-
+ment" }
+"intent": "delete_reminder", "slots": { "content": "doctor appoint-
+ment", "time": "2025-03-20 08:00:00" }
+✗
+Case 2: Um, could I maybe add a schedule for a dentist appointment on July 20th at 3 PM in Paris?
+SFC
+add_schedule(content = "dentist appointment", time = "2024-07-
+20 15:00:00", location="Paris")
+add_schedule(content = "dentist appointment", time = "2024-07-
+20 15:00:00", location="Paris")
+✓
+SLU
+"intent": "add_schedule", "slots": { "content": "dentist appointment",
+"start_time": "2024-07-20 15:00:00", "location": "Paris" }
+"intent": "add_schedule", "slots": { "content": "dentist appointment",
+"time": "2024-07-20 15:00:00", "location": "Paris" }
+✗
+Table 3: Experimental results of SLU and SFC tasks. The met-
+rics include Intent (Function Name) accuracy, Slot (Parameter
+Value) F1 Score, and Overall Accuracy across ID and OOD test
+sets. Best results are in bold.
+Test-ID
+Test-OOD
+Task
+Intent
+Slot
+Overall
+Intent
+Slot
+Overall
+Qwen3-8B, Text Input
+ICL
+SLU
+96.01
+85.20
+69.73
+97.20
+92.52
+83.80
+SFC
+97.56
+91.83
+85.70
+99.07
+95.83
+91.90
+SFT
+SLU
+96.74
+84.26
+70.44
+96.88
+90.24
+82.24
+SFC
+97.67
+92.68
+87.03
+99.07
+94.48
+90.03
+Qwen2.5-7B, Text Input
+ICL
+SLU
+93.90
+78.73
+61.86
+93.15
+82.71
+70.57
+SFC
+91.57
+85.41
+73.95
+93.46
+87.58
+75.70
+SFT
+SLU
+95.79
+84.94
+68.63
+93.77
+87.42
+77.00
+SFC
+96.78
+90.97
+83.15
+99.38
+94.48
+89.72
+Qwen2.5-Omni-7B, Speech Input
+ICL
+SLU
+94.46
+68.06
+53.88
+95.64
+69.12
+50.16
+SFC
+93.02
+79.69
+63.86
+97.20
+80.43
+68.54
+SFT
+SLU
+98.56
+85.50
+75.61
+96.57
+74.79
+57.01
+SFC
+99.45
+87.80
+80.71
+100.0
+79.52
+67.29
+Table 4: Comparison of average confidence (Log Probabilities)
+between SFC and SLU tasks.
+Test-ID
+Test-OOD
+SFC Confidence
+-1.62
+-1.57
+SLU Confidence
+-1.87
+-1.72
+Statistical data in Figure 4 (right) demonstrate a trend in com-
+plexity as difficulty levels escalate. The average answer length
+surges from 20 tokens at Level 1 to over 70 tokens at Level 3-2,
+highlighting the stringent requirements for structured parsing in
+multi-intent and multi-turn semantic completion tasks. Concur-
+rently, the mean audio duration increases from about 7 seconds
+to 13 seconds. This increased audio load substantially exacerbates
+the challenges of ASR error propagation and long-range semantic
+alignment, which constitute the primary obstacles to maintaining
+robustness in LALMs when processing complex instructions.
+5
+Experiments
+Experiments are organized into three components: 1) SLU-SFC
+Comparative Analysis: compare the performance of models when
+processing identical semantic datasets under traditional SLU and
+our proposed SFC perspective. 2) Benchmark Study: evaluate
+LLMs and LALMs’ performance on SFC-Bench across varying levels
+of difficulty. 3) Post-Training: enhance the SFC capabilities of
+LALMs by integrating SFT and RL techniques, while maintaining
+models’ general capabilities.
+5.1
+SLU vs SFC
+We initially conducted comparative experiments using the Level 1
+subset of SFC-Bench. These experiments involved both ICL and SFT
+across LLMs Qwen2.5-7B and Qwen3-8B [42], and LALM Qwen2.5-
+Omni-7B [41]. For LLMs, the inputs consisted of textual user queries,
+whereas the LALM received the corresponding speech input with
+the same context. All models were deployed by vLLM [15] frame-
+work to accelerate inference. In the SFT phase, we utilized the Llama-
+Factory [45] training framework and applied Low-Rank Adaptation
+(LoRA) [12] for parameter-efficient fine-tuning.
+5.1.1
+Quantitative Analysis. SFC consistently outperforms the
+traditional SLU, across both text and audio modalities. As
+shown in Table 3, SFC demonstrates an improvement of 5–18%
+in both audio and text modalities. These gains are primarily at-
+tributed to the more granular and rigorous function definitions
+inherent in SFC, which enhance the accuracy of parameter value
+(analogous to the slot filling in traditional SLU), thereby boosting
+the overall performance. In contrast, SFC exhibits no significant
+advantage in function name (equivalent to intent classification in
+SLU). The reason is that both function name and intent classifica-
+tion are relatively straightforward classification problems that do
+not necessitate complex rule constraints.
+5.1.2
+Qualitative Analysis. Core advantage of SFC over tradi-
+tional SLU lies in its more structured rule definitions. SFC
+utilizes explicit schemas for tools and parameters; for any given tool,
+the parameter rules are fixed. For instance, as shown in Table 2, the
+
+=== page 7 ===
+Spoken Function Calling
+MM ’26, November 10–14, 2026, Rio de Janeiro, Brazil
+Table 5: Experimental results on the SFC Test-ID. The metrics include Intent (Function Name) Accuracy, Slot (Parameter Value)
+F1 Score, and Overall Accuracy. Best results are in bold.
+Level 1
+Level 2
+Level 3-1
+Level 3-2
+Average (Turn-Level)
+Category Model
+Intent
+Slot
+Overall
+Intent
+Slot
+Overall
+Intent
+Slot
+Overall
+Intent
+Slot
+Overall
+Intent
+Slot
+Overall
+LLM
+Llama-3.1-8B-Instruct
+68.40
+56.78
+34.48
+57.17
+44.58
+7.59
+50.79
+52.84
+9.46
+52.61
+55.52
+5.23
+64.71
+50.52
+20.86
+Qwen2.5-7B
+91.57
+85.41
+73.95
+87.97
+87.02
+61.81
+85.17
+77.02
+27.44
+79.09
+80.58
+19.86
+89.55
+78.87
+54.89
+Qwen3-8B
+97.56
+92.99
+87.69
+94.09
+93.63
+80.39
+95.27
+80.99
+31.34
+83.62
+80.56
+22.95
+94.42
+83.77
+62.83
+Qwen3-32B
+94.01
+91.24
+81.71
+92.41
+93.92
+81.22
+92.43
+81.44
+37.33
+87.11
+82.30
+26.04
+92.97
+84.42
+64.02
+ASR +
+LLM
+Llama-3.1-8B-Instruct
+68.51
+45.29
+27.61
+56.96
+37.47
+5.91
+49.84
+45.42
+5.99
+44.95
+49.53
+1.74
+63.88
+42.97
+15.90
+Qwen2.5-Omni
+93.02
+79.69
+63.86
+82.49
+76.74
+47.05
+80.44
+73.07
+18.61
+40.07
+66.76
+7.32
+84.02
+73.85
+48.80
+Qwen3-8B
+97.67
+78.77
+68.07
+92.83
+76.58
+49.58
+94.64
+73.95
+17.98
+86.41
+74.40
+13.94
+94.29
+72.97
+47.27
+Qwen3-32B
+94.90
+78.90
+64.63
+92.19
+77.94
+51.27
+91.17
+78.49
+23.77
+86.76
+78.70
+16.63
+92.66
+76.01
+48.96
+LALM
+Qwen2.5-Omni
+93.46
+81.67
+65.19
+80.38
+76.45
+47.68
+73.50
+69.56
+17.35
+46.69
+68.35
+8.01
+83.59
+73.84
+49.03
+Qwen3-Omni
+86.47
+81.69
+72.06
+86.08
+82.70
+60.55
+49.21
+71.30
+8.20
+46.34
+73.76
+13.24
+78.83
+77.23
+55.07
+Gemini-2.5-Flash
+98.56
+85.61
+77.17
+90.72
+80.81
+55.91
+81.07
+82.04
+35.02
+67.94
+81.80
+25.09
+91.45
+82.60
+64.40
+Gemini-2.5-Pro
+95.23
+87.12
+78.05
+90.08
+83.24
+63.29
+88.64
+85.06
+47.95
+73.52
+81.62
+35.19
+91.25
+84.21
+69.00
+GPT-4o-Audio
+98.89
+88.12
+80.27
+92.83
+84.84
+64.56
+89.27
+84.12
+35.96
+77.00
+83.53
+30.31
+94.08
+85.40
+68.30
+Table 6: Error case analysis of GPT-4o-Audio on the Level 3 test set. Blue text highlights hallucinated dates or improperly
+formatted natural language responses produced by the model.
+ID
+User Speech Request
+Model Prediction
+Ground Truth
+Case 1
+Hey, could you set a reminder for me to
+pick up the dry cleaning this Friday?
+[add_reminder( content = "pick up the dry clean-
+ing", time = "2025-12-12 00:00:00" )]
+[add_reminder(content = "pick up the dry clean-
+ing", time = "NAN" )]
+Case 2
+Um, could you maybe change the desti-
+nation for my train order? I’d like the
+new destination to be Geelong.
+Please provide the order ID for the train order you’d
+like to update with the new destination.
+[update_train_order_dest (order_id = "NAN",
+destination = "Geelong")]
+delete_reminder tool is strictly defined with two parameters: content
+and time. In traditional SLU, however, the rules for intent classifica-
+tion and slot filling are often decoupled. For a specific intent, the
+associated slots are not explicitly constrained, and the extraction
+results depend entirely on the semantic information present in the
+user’s query. This higher degree of freedom frequently leads to
+elevated error rates.
+Structured SFC definitions provide the model with higher
+generation confidence. We further compared the output confi-
+dence of the Qwen2.5-Omni-7B model during inference for both
+SFC and SLU tasks. As illustrated in the Table 4, the model exhibits
+significantly higher Log Probabilities when performing the SFC task,
+indicating superior decoding confidence, which ultimately leads to
+a higher task success rate.
+5.2
+Benchmark
+Consistent with the comparative experiments, all open-source mod-
+els were deployed using the vLLM [15] framework to accelerate
+inference. For the pipeline systems comprising an ASR model in-
+tegrated with LLMs, the widely adopted Whisper-Large-V3-Turbo
+[31] was utilized as the unified ASR component, achieving a Word
+Error Rate (WER) of 13.69%.
+5.2.1
+Quantitative Analysis. Speech-based function calling is
+significantly more challenging than text-based tasks, primar-
+ily due to ASR error propagation. As shown in Table 5, compar-
+ing Oracle text with pipelines reveals a substantial performance
+drop. For instance, Qwen3-32B falls from 64.02% accuracy to 48.96%
+when transitioning from text to speech. ASR misrecognitions of
+proper nouns and numerical values serve as the primary bottleneck,
+severely undermining downstream intent understanding.
+Task complexity serves as the primary determinant of
+model performance. All evaluated architectures exhibit signif-
+icant performance degradation as the difficulty level increases.
+Specifically, even GPT-4o-Audio and Gemini-2.5-Pro experience
+a sharp decline in overall accuracy, dropping from 80.27% at Level 1
+to 30.31% at Level 3-2, which underscores the limitations of current
+models in handling NAN parameter identification and multi-turn
+semantic completion.
+Open-source LALMs show impressive progress but still lag
+behind closed-source models in high-level scenarios. While
+Qwen3-Omni is competitive with Gemini-2.5-Pro and GPT-4o-
+Audio in Level 1 and 2 tasks, a significant performance gap emerges
+in Level 3. Closed-source models demonstrate superior robustness
+and generalization when handling the complex instructions and
+unseen domains characteristic of high-level tasks.
+5.2.2
+Qualitative Analysis. To further investigate the failure modes
+of LALMs in SFC tasks, Table 6 presents typical error cases on the
+high-difficulty test set. Even for GPT-4o-Audio, processing spoken
+interactions still presents the following critical challenges: 1) Model
+Hallucination. As demonstrated in case 1, when user queries
+contain vague temporal expressions (e.g., “this Friday”), the model
+tends to hallucinate a specific time (e.g., “2025-12-12 00:00:00”) rather
+than filling NAN as required when specific parameters are missing.
+This over-compensation behavior can lead downstream systems to
+
+=== page 8 ===
+MM ’26, November 10–14, 2026, Rio de Janeiro, Brazil
+Yuezhang Peng et al.
+Table 7: Post-training results and ablation studies. SpokenFC-7B denotes our final model trained with the GRPO algorithm,
+fine-grained rewards, FP16 precision, and large rollouts (𝑁= 32). Best results are in bold.
+Model / Variant
+SFC Test-ID
+SFC Test-OOD
+CV 15
+MMSU API-Bank
+Level 1 Level 2 Level 3-1 Level 3-2 Overall Level 1 Level 2 Level 3-1 Level 3-2 Overall WER (↓) Acc (↑)
+Overall (↑)
+Qwen2.5-Omni-7B
+63.86
+47.05
+18.61
+7.32
+48.80
+68.54
+51.06
+24.60
+3.85
+56.16
+8.44
+62.54
+54.84
+GPT-4o-Audio
+80.27
+64.56
+35.97
+30.31
+68.30
+71.65
+64.89
+49.21
+26.92
+68.09
+–
+–
+–
+Gemini-2.5-Pro
+78.05
+63.29
+47.95
+35.19
+69.00
+73.52
+67.02
+57.14
+38.46
+71.60
+–
+–
+–
+SpokenFC-7B (Proposed)
+81.60
+71.10
+49.21
+40.42
+74.15
+76.95
+69.15
+65.05
+38.46
+75.10
+8.30
+62.58
+64.52
+Ablation Variants
+SFT
+80.38
+66.67
+47.95
+36.93
+71.90
+74.45
+62.77
+65.08
+46.15
+73.93
+8.49
+62.50
+55.58
+RL w/ EM Reward
+81.42
+70.23
+47.25
+36.67
+73.08
+76.34
+68.21
+64.42
+36.97
+73.24
+8.35
+62.30
+63.85
+RL w/ BF16
+81.37
+69.41
+44.79
+37.28
+72.83
+76.95
+67.02
+63.49
+36.54
+74.32
+8.32
+62.44
+63.97
+RL w/ 𝑁= 8
+77.12
+60.33
+40.50
+27.15
+67.40
+67.10
+60.45
+52.20
+24.15
+66.80
+8.35
+62.20
+60.50
+RL w/ 𝑁= 16
+80.31
+66.27
+44.09
+33.21
+71.24
+73.53
+65.42
+59.78
+30.67
+71.44
+8.30
+62.38
+62.14
+RL w/ 𝑁= 64
+81.37
+70.25
+50.47
+42.51
+74.38
+76.32
+68.09
+66.46
+40.18
+75.03
+8.29
+62.50
+64.43
+0
+50
+100 150 200
+Training Step
+0.4
+0.5
+0.6
+0.7
+0.8
+Average Reward
+EM
+Fine-grained
+Figure 5: Ablation study
+on reward types.
+8
+16
+32
+64
+Number of Rollouts (N)
+60
+70
+80
+Accuracy (%)
+SFC ID
+SFC OOD
+API-Bank
+MMSU
+CV15-EN
+8.2
+8.3
+8.4
+8.5
+ASR WER (%)
+Figure 6: Ablation study among
+different rollouts.
+execute incorrect instructions. 2) Instruction Following Failure.
+As illustrated in case 2, when faced with scenarios requiring the
+completion of critical missing parameters (e.g., Order ID), the model
+occasionally reverts to a traditional chatbot mode. It provides a
+natural language inquiry instead of outputting a structured function
+calling sequence as required.
+5.3
+Post-Training and Ablation Study
+We employ Llama-Factory [45] for SFT and MS-SWIFT [44] for
+RL. All experiments are based on Qwen2.5-Omni-7B, fine-tuning
+only the LLM backbone via LoRA while freezing the vision encoder,
+audio encoder, and talker modules. Models are trained for one epoch
+on Nvidia 8×A800 GPUs. To evaluate generalization, we test on ASR
+with CommonVoice15-en [2], audio reasoning on MMSU [36], and
+text function calling on API-Bank [18], level 1 subset. Experimental
+results are in Table 7.
+SpokenFC-7B model, fine-tuned via synthetic training
+data, demonstrates substantial performance improvements
+in both Test-ID and Test-OOD SFC tasks, as well as text-based
+function calling. Notably, it surpasses GPT-4o-Audio in SFC per-
+formance, and also achieves marginal gains in ASR and audio rea-
+soning tasks compared to the base model, further validating the
+cross-modal generalization capability of the post-training.
+RL exhibits enhanced generalization and transferability
+over SFT. Although SFT facilitates notable improvements in SFC
+tasks through memorization, it fails to extend effectively to anal-
+ogous text-based function call tasks. In contrast, RL encourages
+the model to internalize the fundamental logic of semantic parsing
+and tool utilization, leading to performance enhancements in both
+speech and text domains. Moreover, whereas SFT leads to a slight
+regression in ASR and Audio Reasoning capabilities, RL training
+successfully addresses the issue of catastrophic forgetting, actually
+bolstering performance in these foundational tasks.
+Fine-grained rewards address the sparse reward challenge
+in early-stage RL by providing dense signals, as shown in
+Figure 5. This granular feedback is particularly advantageous for
+complex tasks with long reasoning chains (e.g., Level 3-2); by re-
+ducing variance in policy optimization, it ensures a smoother and
+more robust training process while improving the model’s final
+performance.
+FP16 outperforms BF16 by leveraging its higher mantissa
+precision to mitigate the training-inference mismatch [26].
+This increased precision reduces cumulative rounding errors during
+long JSON sequence generation and stabilizes training gradients
+to prevent model collapse. Consequently, FP16 achieves a superior
+balance between task-specific optimization and the maintenance of
+general capabilities.
+Increasing the number of rollouts (𝑁) significantly boosts
+exploration efficiency and provides more accurate baseline
+estimates for advantage functions, yet it follows the law of
+diminishing returns. While a larger model can further maximize
+in-domain performance, excessive sampling risks overfitting to spe-
+cific training patterns, thereby compromising OOD generalization.
+6
+Conclusion
+This work introduces Spoken Function Calling as a novel perspec-
+tive for task-oriented spoken semantics extraction, to evolve beyond
+traditional closed-set SLU. Leveraging structured rule definitions,
+SFC overcomes the limitations of traditional SLU in handling open-
+domain tasks with ICL. Through the dataset construction and em-
+pirical evaluations, this study demonstrates that SFC significantly
+improves semantic understanding accuracy compared to traditional
+SLU for LLMs and LALMs, and SFC performance can be further
+enhanced through RL post-training with fine-grained rewards. Fu-
+ture work will be directed toward dataset scaling and post-training
+techniques to further refine the model’s capabilities.
+
+=== page 9 ===
+Spoken Function Calling
+MM ’26, November 10–14, 2026, Rio de Janeiro, Brazil
+Acknowledgments. This work was supported by National Natu-
+ral Science Foundation of China (No. U23B2018), the Science and
+Technology Innovation (STI) 2030-Major Project (2022ZD0208700),
+Yangtze River Delta Science and Technology Innovation Commu-
+nity Joint Research Project (2024CSJGG1100), and Alibaba Research
+Intern Program.
+References
+[1] Sandhini Agarwal, Lama Ahmad, Jason Ai, Sam Altman, Andy Applebaum, Edwin
+Arbus, Rahul K Arora, Yu Bai, Bowen Baker, Haiming Bao, et al. 2025. gpt-oss-120b
+& gpt-oss-20b model card. arXiv:2508.10925 (2025).
+[2] Rosana Ardila, Megan Branson, Kelly Davis, Michael Kohler, Josh Meyer, Michael
+Henretty, Reuben Morais, Lindsay Saunders, Francis Tyers, and Gregor Weber.
+2020. Common Voice: A massively-multilingual speech corpus. In Proc. LREC.
+4218–4222.
+[3] Emanuele Bastianelli, Andrea Vanzo, Pawel Swietojanski, and Verena Rieser. 2020.
+SLURP: A spoken language understanding resource package. In Proc. EMNLP
+(2020), 7252–7262.
+[4] Tom Brown, Benjamin Mann, Nick Ryder, Melanie Subbiah, Jared D Kaplan,
+Prafulla Dhariwal, Arvind Neelakantan, Pranav Shyam, Girish Sastry, Amanda
+Askell, et al. 2020. Language models are few-shot learners. In Proc. NeurIPS 33
+(2020), 1877–1901.
+[5] Pawel Budzianowski, Tsung-Hsien Wen, Bo-Hsiang Tseng, Iñigo Casanueva,
+Stefan Ultes, Osman Ramadan, and Milica Gasic. 2018. MultiWOZ - A Large-
+Scale Multi-Domain Wizard-of-Oz Dataset for Task-Oriented Dialogue Modelling.
+In Proc. EMNLP. Association for Computational Linguistics, 5016–5026.
+[6] Mark Chen. 2021.
+Evaluating large language models trained on code.
+arXiv:2107.03374 (2021).
+[7] Alice Coucke, Alaa Saade, Adrien Ball, Théodore Bluche, Alexandre Caulier,
+David Leroy, Clément Doumouro, Thibault Gisselbrecht, Francesco Caltagirone,
+et al. 2018. Snips Voice Platform: an embedded spoken language understanding
+system for private-by-design voice interfaces. arXiv:1805.10190 (2018).
+[8] Abhimanyu Dubey, Abhinav Jauhri, Abhinav Pandey, Abhishek Kadian, Ahmad
+Al-Dahle, Aiesha Letman, Akhil Mathur, Alan Schelten, Amy Yang, Angela Fan,
+et al. 2024. The llama 3 herd of models. arXiv e-prints (2024), arXiv–2407.
+[9] Mutian He and Philip N Garner. 2023. Can ChatGPT detect intent? evaluating
+large language models for spoken language understanding. In Proc. InterSpeech
+(2023), 1109–1113.
+[10] Charles T Hemphill, John J Godfrey, and George R Doddington. 1990. The ATIS
+spoken language systems pilot corpus. In Proc. Speech and Natural Language
+Workshop June 24-27, 1990.
+[11] Xinyi Hou, Yanjie Zhao, Shenao Wang, and Haoyu Wang. 2025. Model Context
+Protocol (MCP): Landscape, security threats, and future research directions.
+arXiv:2503.23278 (2025).
+[12] Edward J Hu, Yelong Shen, Phillip Wallis, Zeyuan Allen-Zhu, Yuanzhi Li, Shean
+Wang, Lu Wang, Weizhu Chen, et al. 2022. Lora: Low-rank adaptation of large
+language models. In Proc. ICLR 1, 2 (2022), 3.
+[13] Ziwei Ji, Tiezheng Yu, Yan Xu, Nayeon Lee, Etsuko Ishii, and Pascale Fung.
+2023. Towards mitigating LLM hallucination via self reflection. In Proc. EMNLP.
+1827–1843.
+[14] Jared Kaplan, Sam McCandlish, Tom Henighan, Tom B Brown, Benjamin Chess,
+Rewon Child, Scott Gray, Alec Radford, Jeffrey Wu, and Dario Amodei. 2020.
+Scaling laws for neural language models. arXiv:2001.08361 (2020).
+[15] Woosuk Kwon, Zhuohan Li, Siyuan Zhuang, Ying Sheng, Lianmin Zheng,
+Cody Hao Yu, Joseph Gonzalez, Hao Zhang, and Ion Stoica. 2023. Efficient
+memory management for large language model serving with pagedattention. In
+Proc. SOSP. 611–626.
+[16] Haoran Li, Abhinav Arora, Shuohui Chen, Anchit Gupta, Sonal Gupta, and Yashar
+Mehdad. 2021. MTOP: A Comprehensive Multilingual Task-Oriented Semantic
+Parsing Benchmark. In Proc. EACL. 2950–2962.
+[17] Mohan Li, Cong-Thanh Do, Simon Keizer, Youmna Farag, Svetlana Stoyanchev,
+and Rama Doddipatla. 2024. WHISMA: A Speech-LLM to perform zero-shot
+spoken language understanding. In Proc. SLT. IEEE, 1115–1122.
+[18] Minghao Li, Yingxiu Zhao, Bowen Yu, Feifan Song, Hangyu Li, Haiyang Yu,
+Zhoujun Li, Fei Huang, and Yongbin Li. 2023. API-Bank: A comprehensive
+benchmark for tool-augmented LLMs. arXiv:2304.08244 (2023).
+[19] Weiwen Liu, Xu Huang, Xingshan Zeng, Xinlong Hao, Shuai Yu, Dexun Li, Shuai
+Wang, Weinan Gan, Zhengying Liu, Yuanqing Yu, et al. 2024. ToolACE: Winning
+the points of llm function calling. arXiv:2409.00920 (2024).
+[20] Pan Lu, Hritik Bansal, Tony Xia, Jiacheng Liu, Chunyuan Li, Hannaneh Hajishirzi,
+Hao Cheng, Kai-Wei Chang, Michel Galley, and Jianfeng Gao. 2024. MathVista:
+Evaluating mathematical reasoning of foundation models in visual contexts. In
+Proc. ICLR (2024).
+[21] Loren Lugosch, Mirco Ravanelli, Patrick Ignoto, Vikrant Singh Tomar, and Yoshua
+Bengio. 2019. Speech model pre-training for end-to-end spoken language under-
+standing. In Proc. InterSpeech (2019), 7458–7462.
+[22] Vassil Panayotov, Guoguo Chen, Daniel Povey, and Sanjeev Khudanpur. 2015.
+Librispeech: an asr corpus based on public domain audio books. In Proc. ICASSP.
+IEEE, 5206–5210.
+[23] Bhargavi Paranjape, Scott Lundberg, Sameer Singh, Hannaneh Hajishirzi, Luke
+Zettlemoyer, and Marco Tulio Ribeiro. 2023. Art: Automatic multi-step reasoning
+and tool-use for large language models. arXiv:2303.09014 (2023).
+[24] Shishir G Patil, Tianjun Zhang, Xin Wang, and Joseph E Gonzalez. 2024. Gorilla:
+Large language model connected with massive apis. In Proc. NeurIPS 37 (2024),
+126544–126565.
+[25] Yuezhang Peng, Chonghao Cai, Ziang Liu, Shuai Fan, Sheng Jiang, Hua Xu, Yuxin
+Liu, Qiguang Chen, Kele Xu, et al. 2025. MAC-SLU: Multi-Intent Automotive
+Cabin Spoken Language Understanding Benchmark. arXiv:2512.01603 (2025).
+[26] Penghui Qi, Zichen Liu, Xiangxin Zhou, Tianyu Pang, Chao Du, Wee Sun
+Lee, and Min Lin. 2025. Defeating the training-inference mismatch via fp16.
+arXiv:2510.26788 (2025).
+[27] Cheng Qian, Emre Can Acikgoz, Qi He, Hongru Wang, Xiusi Chen, Dilek Hakkani-
+Tür, Gokhan Tur, and Heng Ji. 2025. ToolRL: Reward is all tool learning needs. In
+Proc. NeurIPS (2025).
+[28] Libo Qin, Tailu Liu, Wanxiang Che, Bingbing Kang, Sendong Zhao, and Ting Liu.
+2021. A co-interactive transformer for joint slot filling and intent detection. In
+Proc. ICASSP. IEEE, 8193–8197.
+[29] Libo Qin, Xiao Xu, Wanxiang Che, and Ting Liu. 2020. AGIF: An adaptive
+graph-interactive framework for joint multiple intent detection and slot filling.
+arXiv:2004.10087 (2020).
+[30] Yujia Qin, Shihao Liang, Yining Ye, Kunlun Zhu, Lan Yan, Yaxi Lu, Yankai Lin, Xin
+Cong, Xiangru Tang, Bill Qian, et al. 2023. ToolLLM: Facilitating large language
+models to master 16000+ real-world apis. arXiv:2307.16789 (2023).
+[31] Alec Radford, Jong Wook Kim, Tao Xu, Greg Brockman, Christine McLeavey, and
+Ilya Sutskever. 2023. Robust speech recognition via large-scale weak supervision.
+In Proc. ICML. PMLR, 28492–28518.
+[32] Timo Schick, Jane Dwivedi-Yu, Roberto Dessì, Roberta Raileanu, Maria Lomeli,
+Eric Hambro, Luke Zettlemoyer, Nicola Cancedda, and Thomas Scialom. 2023.
+Toolformer: Language models can teach themselves to use tools. In Proc. NeurIPS
+36 (2023), 68539–68551.
+[33] John Schulman, Filip Wolski, Prafulla Dhariwal, Alec Radford, and Oleg Klimov.
+2017. Proximal policy optimization algorithms. arXiv:1707.06347 (2017).
+[34] Zhihong Shao, Peiyi Wang, Qihao Zhu, Runxin Xu, Junxiao Song, Xiao Bi, Haowei
+Zhang, Mingchuan Zhang, YK Li, et al. 2024. DeepSeekMath: Pushing the limits
+of mathematical reasoning in open language models. arXiv:2402.03300 (2024).
+[35] Gokhan Tur and Renato De Mori. 2011. Spoken language understanding: Systems
+for extracting semantic information from speech. John Wiley & Sons.
+[36] Dingdong Wang, Jincenzi Wu, Junan Li, Dongchao Yang, Xueyuan Chen, Tianhua
+Zhang, and Helen Meng. 2025. MMSU: A Massive Multi-task Spoken Language
+Understanding and Reasoning Benchmark. arXiv:2506.04779 (2025).
+[37] Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Fei Xia, Ed Chi,
+Quoc V Le, Denny Zhou, et al. 2022. Chain-of-thought prompting elicits reasoning
+in large language models. In Proc. NeurIPS 35 (2022), 24824–24837.
+[38] J. Williams, Antoine Raux, and Matthew Henderson. 2016. The Dialog State
+Tracking Challenge Series: A Review. Dialogue Discourse 7 (2016), 4–33.
+[39] J. Williams, Antoine Raux, Deepak Ramachandran, and Alan W. Black. 2013. The
+Dialog State Tracking Challenge. In Proc. SIGDIAL.
+[40] Boyong Wu, Chao Yan, Chen Hu, Cheng Yi, Chengli Feng, Fei Tian, Feiyu Shen,
+Gang Yu, Haoyang Zhang, Jingbei Li, et al. 2025. Step-Audio 2 Technical Report.
+arXiv:2507.16632 (2025).
+[41] Jin Xu, Zhifang Guo, Hangrui Hu, Yunfei Chu, Xiong Wang, Jinzheng He, Yuxuan
+Wang, Xian Shi, Ting He, Xinfa Zhu, et al. 2025. Qwen3-omni technical report.
+arXiv:2509.17765 (2025).
+[42] An Yang, Anfeng Li, Baosong Yang, Beichen Zhang, Binyuan Hui, Bo Zheng,
+Bowen Yu, Chang Gao, Chengen Huang, Chenxu Lv, et al. 2025. Qwen3 technical
+report. arXiv:2505.09388 (2025).
+[43] Shunyu Yao, Jeffrey Zhao, Dian Yu, Nan Du, Izhak Shafran, Karthik R Narasimhan,
+and Yuan Cao. 2022. ReAct: Synergizing reasoning and acting in language models.
+In Proc. ICLR.
+[44] Yuze Zhao, Jintao Huang, Jinghan Hu, Xingjun Wang, Yunlin Mao, Daoze Zhang,
+Zeyinzi Jiang, Zhikai Wu, Baole Ai, Ang Wang, et al. 2025. SWIFT: a scalable
+lightweight infrastructure for fine-tuning. In Proc. AAAI, Vol. 39. 29733–29735.
+[45] Yaowei Zheng, Richong Zhang, Junhao Zhang, Yanhan Ye, Zheyan Luo, Zhangchi
+Feng, and Yongqiang Ma. 2024. Llamafactory: Unified efficient fine-tuning of
+100+ language models. arXiv:2403.13372 (2024).
+[46] Siyi Zhou, Yiquan Zhou, Yi He, Xun Zhou, Jinchao Wang, Wei Deng, and Jingchen
+Shu. 2025. IndexTTS2: A Breakthrough in Emotionally Expressive and Duration-
+Controlled Auto-Regressive Zero-Shot Text-to-Speech. arXiv:2506.21619 (2025).
+[47] Yuchen Zhuang, Yue Yu, Kuan Wang, Haotian Sun, and Chao Zhang. 2023.
+ToolQA: A dataset for llm question answering with external tools. In Proc.
+NeurIPS 36 (2023), 50117–50143.
+

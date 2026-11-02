@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Masked prediction trên Fbank + loss cross-entropy</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../_assets/common.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+.page{max-width:780px;margin:0 auto}
+.crumbs{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:14px;margin-bottom:14px}
+.detail h1{margin-bottom:6px}
+.detail .sec{margin-top:18px}
+.detail .sec>.k{font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px}
+.origin{border-radius:var(--r);padding:10px 14px;background:var(--soft);font-size:14px}
+.done{display:inline-flex;gap:8px;align-items:center;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:var(--r);background:var(--soft)}
+.pager{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+.pager a{flex:1;padding:10px 14px;border-radius:8px;box-shadow:var(--lift);text-decoration:none;font-size:14px}
+.pager a:hover{box-shadow:var(--lift-hi)}
+.pager a.next{text-align:right}
+.pager small{display:block;color:var(--mute);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="page detail" id="detail"></div></div>
+
+<script src="../../_assets/common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" defer></script>
+<script>
+const DATA = {"topic": "lifemate", "paper": {"id": "zhuo-2025-vietasr", "title": "VietASR: Achieving Industry-level Vietnamese ASR with 50-hour Labeled Data and Large-Scale Speech Pretraining", "venue": "Interspeech", "year": 2025, "url": "https://arxiv.org/abs/2505.21527"}, "labels": {"fbank": "Waveform → Fbank", "wer": "WER (word error rate)", "asr-encoder": "Encoder ASR và output theo frame", "bpe": "BPE word pieces", "rnnt": "RNN-T (transducer)", "pruned-rnnt": "Pruned RNN-T loss", "zipformer": "Zipformer", "ssl": "Self-supervised learning (SSL) cho speech", "kmeans-codebook": "Codebook k-means (nhãn cụm)", "hubert": "HuBERT", "hubert-on-fbank": "Masked prediction trên Fbank + loss cross-entropy", "asr-biased-ssl": "ASR-biased SSL", "supervised-codebook": "Supervised codebook", "multi-iteration": "Lặp nhiều vòng", "vad-segmentation": "VAD + cắt đoạn tự động", "streaming-asr": "Streaming ASR (chunk)", "test-sets": "Test set và hệ so sánh", "__target": "VietASR: Zipformer + HuBERT-style SSL với supervised codebook, lặp 3 vòng"}, "node": {"id": "hubert-on-fbank", "label": "Masked prediction trên Fbank + loss cross-entropy", "kind": "phương pháp", "requires": ["hubert", "zipformer"], "origin": {"type": "adapted", "from": {"title": "MelHuBERT: A Simplified HuBERT on Mel Spectrograms; Fast-HuBERT", "authors": "Lin, Lee, Tang; Yang, Ma, Zheng et al.", "venue": "ASRU", "year": 2023, "url": "https://arxiv.org/abs/2211.09944"}, "evidence": "\"we apply masking to the Fbank features directly as in [22]\" (p.2); \"we replace it with a simplified function, following [21] and [22], and adopt cross-entropy loss\" (p.2)", "note": "Thay đổi so với HuBERT: (1) che trực tiếp trên Fbank thay vì feature sau CNN; (2) bỏ hàm dự đoán dùng cosine với embedding của codeword, thay bằng lớp chiếu tuyến tính + softmax + cross-entropy. Cả hai thay đổi lấy từ MelHuBERT và Fast-HuBERT; phần mới là áp vào Zipformer."}, "short": "Che các đoạn frame Fbank (span 10, 8% frame làm điểm bắt đầu), dự đoán nhãn cụm bằng softmax + cross-entropy.", "summary": "Vì Fbank đã là feature cục bộ, VietASR che trực tiếp trên Fbank theo trục thời gian: chọn ngẫu nhiên 8% frame làm điểm bắt đầu, mỗi điểm che 10 frame liên tiếp. Encoder chạy trên Fbank đã che, lớp chiếu `A` biến `o_t` thành điểm số cho C cụm, chia nhiệt độ τ, rồi cross-entropy với nhãn `c_t`, chỉ tính ở frame bị che.", "visuals": [{"type": "steps", "title": "Loss tại một frame bị che (số minh hoạ: C = 3)", "items": [{"text": "Nhãn của frame: c_t = B."}, {"text": "z_t = A·o_t / τ = (1.0, 3.0, 0.5) cho (A, B, C)."}, {"text": "Softmax: exp(3.0) / (exp(1.0) + exp(3.0) + exp(0.5)) ≈ 20.1 / (2.7 + 20.1 + 1.6) ≈ 0.82."}, {"text": "Loss frame này = −log 0.82 ≈ 0.20. Frame không bị che không tính loss."}]}], "formulas": [{"expr": "f(\\tilde{X}, c) = -\\sum_{t \\in \\text{masked}} \\log \\frac{\\exp(z_{t c_t})}{\\sum_{i=1}^{C} \\exp(z_{ti})}", "say": "Loss bằng tổng trên các frame bị che của âm log xác suất softmax mà model gán cho đúng cụm của frame đó.", "symbols": [["\\tilde{X}", "Fbank đã che"], ["c_t", "nhãn cụm của frame t"], ["z_{ti}", "điểm số của cụm i tại frame t"], ["C", "số cụm (500)"]], "src": "Eq. 1"}, {"expr": "z_t = A o_t / \\tau", "say": "Điểm số tại frame t bằng ma trận chiếu A nhân với output encoder, chia cho nhiệt độ tau.", "symbols": [["A", "ma trận chiếu"], ["o_t", "output encoder tại frame t"], ["\\tau", "nhiệt độ"]], "src": "Eq. 3"}], "why": "Đây là Stage 3 (pre-train) trong pipeline.", "inPaper": "Section 3.1.2, 3.1.3, Eq. 1–3 (p.2); Section 4.1 Pre-training (p.3)", "body": "- Lý do đổi loss: hàm dự đoán của HuBERT gốc tốn nhiều bộ nhớ để cập nhật embedding codeword và tính cosine (p.2).\n- Batch 1000 giây audio, 8 GPU V100, ScaledAdam β = (0.9, 0.98), scheduler Eden (p.3)."}, "hasDeepDive": false, "isTarget": false, "prev": "zipformer", "next": "multi-iteration"};
+const {esc, md} = RP;
+const KEY = `rp:${DATA.topic}:learned`;
+let learned = new Set(RP.store.get(KEY, []));
+const ORIGIN = {prior: "Có từ trước, paper dùng lại", adapted: "Kế thừa có thay đổi", renamed: "Tên mới cho phương pháp đã có", new: "Tác giả đề xuất mới"};
+const L = DATA.labels;
+const page = id => `${id === "__target" ? "_target" : id}.html`;
+const nodeLink = (id, text) => L[id] ? `<a href="${page(id)}">${esc(text || L[id])}</a>` : esc(text || id);
+const sec = (k, html) => html ? `<div class="sec"><div class="k">${k}</div>${html}</div>` : "";
+const n = DATA.node, o = n.origin || {}, f = o.from;
+const pager = `<div class="sec pager">${DATA.prev ? `<a href="${page(DATA.prev)}"><small>← Trước</small>${esc(L[DATA.prev])}</a>` : "<span></span>"}` +
+  (DATA.next ? `<a class="next" href="${page(DATA.next)}"><small>Tiếp theo →</small>${esc(L[DATA.next])}</a>` : "<span></span>") + `</div>`;
+const crumbs = `<div class="crumbs"><a href="../roadmap.html">← Roadmap</a>${DATA.hasDeepDive ? `<a href="../deep-dive.html">Deep dive</a>` : ""}<span class="muted">${esc(DATA.paper.title)}</span></div>`;
+
+let html;
+if (DATA.isTarget) {
+  html = crumbs + `<h1>${esc(n.label)}</h1><div class="row"><span class="badge acc">Solution của paper</span></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Cần nắm trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) + pager;
+} else {
+  html = crumbs +
+    `<h1>${esc(n.label)}</h1><div class="row"><span class="badge">${esc(n.kind || "")}</span><span class="badge ${o.type === "new" ? "solid" : o.type === "prior" ? "" : "acc"}">${esc(ORIGIN[o.type] || "")}</span>${n.inPaper ? `<span class="src">Trong paper: ${esc(n.inPaper)}</span>` : ""}</div>` +
+    `<div class="sec"><label class="done"><input type="checkbox" id="done" ${learned.has(n.id) ? "checked" : ""}> Đã học xong node này</label></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Công thức", (n.formulas || []).map(RP.formula).join("")) +
+    sec("Ví dụ", md(n.example, nodeLink)) +
+    sec("Vì sao cần cho paper này", md(n.why, nodeLink)) +
+    sec("Chi tiết", md(n.body, nodeLink)) +
+    sec("Nguồn gốc", `<div class="origin"><b>${esc(ORIGIN[o.type] || "")}</b>` +
+      (f ? `<br>${f.url ? `<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a>` : esc(f.title || "")} <span class="muted">${esc([f.authors, f.venue, f.year].filter(Boolean).join(", "))}</span>` : "") +
+      (o.evidence ? `<blockquote>${md(o.evidence, nodeLink)}</blockquote>` : "") + (o.note ? md(o.note, nodeLink) : "") + `</div>`) +
+    sec("Cần học trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) +
+    sec("Đọc thêm", n.links?.length ? `<ul>${n.links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a></li>`).join("")}</ul>` : "") +
+    pager;
+}
+document.getElementById("detail").innerHTML = html;
+document.title = `${n.label} · Roadmap`;
+const done = document.getElementById("done");
+if (done) done.onchange = () => { done.checked ? learned.add(n.id) : learned.delete(n.id); RP.store.set(KEY, [...learned]); };
+window.addEventListener("load", () => RP.math());
+</script>
+</body>
+</html>

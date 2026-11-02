@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API-Bank, Tool-Alpaca, Seal-Tools, Nexus Raven</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../_assets/common.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+.page{max-width:780px;margin:0 auto}
+.crumbs{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:14px;margin-bottom:14px}
+.detail h1{margin-bottom:6px}
+.detail .sec{margin-top:18px}
+.detail .sec>.k{font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px}
+.origin{border-radius:var(--r);padding:10px 14px;background:var(--soft);font-size:14px}
+.done{display:inline-flex;gap:8px;align-items:center;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:var(--r);background:var(--soft)}
+.pager{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+.pager a{flex:1;padding:10px 14px;border-radius:8px;box-shadow:var(--lift);text-decoration:none;font-size:14px}
+.pager a:hover{box-shadow:var(--lift-hi)}
+.pager a.next{text-align:right}
+.pager small{display:block;color:var(--mute);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="page detail" id="detail"></div></div>
+
+<script src="../../_assets/common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" defer></script>
+<script>
+const DATA = {"topic": "lifemate", "paper": {"id": "chen-2025-hammer", "title": "Hammer: Robust Function-Calling for On-Device Language Models via Function Masking", "venue": "ICLR", "year": 2025, "url": "https://arxiv.org/abs/2410.04587"}, "labels": {"candidate-function": "Candidate function", "fc-vs-prompt": "FC mode vs Prompt mode", "irrelevance-detection": "Irrelevance detection", "naming-overreliance": "Model phụ thuộc vào tên function / tham số", "xlam-60k": "xlam-function-calling-60k", "function-masking": "Function masking", "masking-ratio": "Masking ratio", "irrelevance-augmented": "Irrelevance-augmented data", "irrelevance-ratio": "Tỉ lệ dữ liệu irrelevance", "ast-eval": "AST evaluation", "exec-eval": "Executable function evaluation", "bfcl": "BFCL v2", "f1-func-args": "F1 Func-Name / F1 Func+Args", "academic-benchmarks": "API-Bank, Tool-Alpaca, Seal-Tools, Nexus Raven", "qwen-base": "Base model: Qwen 1.5B / 4B / 7B", "__target": "Hammer: SFT với function masking + dữ liệu irrelevance"}, "node": {"id": "academic-benchmarks", "label": "API-Bank, Tool-Alpaca, Seal-Tools, Nexus Raven", "kind": "dataset", "requires": ["f1-func-args"], "origin": {"type": "prior", "evidence": "\"we conducted evaluations using a variety of function-calling benchmarks, all of which represent out-of-domain challenges for our model\" (p.7)", "note": "API-Bank: EMNLP 2023. Seal-Tools: arXiv 2405.08355. Tool-Alpaca: arXiv 2023. Nexus Raven: bộ eval của Nexusflow [nguồn khác]."}, "short": "4 benchmark ngoài BFCL, đều out-of-domain với dữ liệu train của Hammer, dùng để đo độ ổn định.", "summary": "Paper dùng các benchmark này để kiểm luận điểm chính: model khác nhau ổn định đến đâu khi đổi benchmark (tức đổi quy ước đặt tên).", "visuals": [{"type": "table", "title": "Quy mô (theo paper)", "head": ["Benchmark", "Quy mô", "Ghi chú"], "rows": [["API-Bank", "314 hội thoại, 753 API call", "L-1: gọi API đã biết; L-2: tìm và gọi API trong danh sách"], ["Tool-Alpaca", "271 mẫu, 50 nhóm; dùng 100 mẫu test", "dữ liệu tổng hợp"], ["Seal-Tools", "4,076 API", "mới nhất, ít rủi ro rò rỉ dữ liệu"], ["Nexus Raven", "318 mẫu, 65 API", ""]], "src": "Section 5.1 (p.7)"}], "why": "Table 1 (gap) và Table 3, Table 5 (kết quả) đều tính trên các benchmark này.", "inPaper": "Section 5.1 (p.7), Table 1 (p.2), Table 3 (p.3)", "body": "- F1 Func+Args trung bình (Table 3, p.3): Hammer-4B 71.35, Hammer-1.5B 66.20, xLAM-7B-fc 67.65, xLAM-1.3B-fc 66.77.\n- Các benchmark này đều tiếng Anh, single-turn [nhận xét của AI].", "links": [{"title": "API-Bank (EMNLP 2023)", "url": "https://aclanthology.org/2023.emnlp-main.187"}, {"title": "Seal-Tools (arXiv 2405.08355)", "url": "https://arxiv.org/abs/2405.08355"}]}, "hasDeepDive": false, "isTarget": false, "prev": "f1-func-args", "next": "qwen-base"};
+const {esc, md} = RP;
+const KEY = `rp:${DATA.topic}:learned`;
+let learned = new Set(RP.store.get(KEY, []));
+const ORIGIN = {prior: "Có từ trước, paper dùng lại", adapted: "Kế thừa có thay đổi", renamed: "Tên mới cho phương pháp đã có", new: "Tác giả đề xuất mới"};
+const L = DATA.labels;
+const page = id => `${id === "__target" ? "_target" : id}.html`;
+const nodeLink = (id, text) => L[id] ? `<a href="${page(id)}">${esc(text || L[id])}</a>` : esc(text || id);
+const sec = (k, html) => html ? `<div class="sec"><div class="k">${k}</div>${html}</div>` : "";
+const n = DATA.node, o = n.origin || {}, f = o.from;
+const pager = `<div class="sec pager">${DATA.prev ? `<a href="${page(DATA.prev)}"><small>← Trước</small>${esc(L[DATA.prev])}</a>` : "<span></span>"}` +
+  (DATA.next ? `<a class="next" href="${page(DATA.next)}"><small>Tiếp theo →</small>${esc(L[DATA.next])}</a>` : "<span></span>") + `</div>`;
+const crumbs = `<div class="crumbs"><a href="../roadmap.html">← Roadmap</a>${DATA.hasDeepDive ? `<a href="../deep-dive.html">Deep dive</a>` : ""}<span class="muted">${esc(DATA.paper.title)}</span></div>`;
+
+let html;
+if (DATA.isTarget) {
+  html = crumbs + `<h1>${esc(n.label)}</h1><div class="row"><span class="badge acc">Solution của paper</span></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Cần nắm trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) + pager;
+} else {
+  html = crumbs +
+    `<h1>${esc(n.label)}</h1><div class="row"><span class="badge">${esc(n.kind || "")}</span><span class="badge ${o.type === "new" ? "solid" : o.type === "prior" ? "" : "acc"}">${esc(ORIGIN[o.type] || "")}</span>${n.inPaper ? `<span class="src">Trong paper: ${esc(n.inPaper)}</span>` : ""}</div>` +
+    `<div class="sec"><label class="done"><input type="checkbox" id="done" ${learned.has(n.id) ? "checked" : ""}> Đã học xong node này</label></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Công thức", (n.formulas || []).map(RP.formula).join("")) +
+    sec("Ví dụ", md(n.example, nodeLink)) +
+    sec("Vì sao cần cho paper này", md(n.why, nodeLink)) +
+    sec("Chi tiết", md(n.body, nodeLink)) +
+    sec("Nguồn gốc", `<div class="origin"><b>${esc(ORIGIN[o.type] || "")}</b>` +
+      (f ? `<br>${f.url ? `<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a>` : esc(f.title || "")} <span class="muted">${esc([f.authors, f.venue, f.year].filter(Boolean).join(", "))}</span>` : "") +
+      (o.evidence ? `<blockquote>${md(o.evidence, nodeLink)}</blockquote>` : "") + (o.note ? md(o.note, nodeLink) : "") + `</div>`) +
+    sec("Cần học trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) +
+    sec("Đọc thêm", n.links?.length ? `<ul>${n.links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a></li>`).join("")}</ul>` : "") +
+    pager;
+}
+document.getElementById("detail").innerHTML = html;
+document.title = `${n.label} · Roadmap`;
+const done = document.getElementById("done");
+if (done) done.onchange = () => { done.checked ? learned.add(n.id) : learned.delete(n.id); RP.store.set(KEY, [...learned]); };
+window.addEventListener("load", () => RP.math());
+</script>
+</body>
+</html>

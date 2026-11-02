@@ -1,0 +1,9 @@
+# Trọng số model (sft1 7.5 GB đã có trên Kaggle: dataset private jasonhoang666/qwen3-4b-sft1)
+models/
+# Dữ liệu cuộc thi: tải lại từ BTC hoặc dataset private jasonhoang666/lifemate-data
+data/
+# Output tải về từ Kaggle (log, checkpoint, submission); điểm đã ghi trong PROGRESS.md
+output/
+# Notebook sinh từ notebooks/*.py bởi scripts/kaggle_run.py; giữ kernel-metadata.json
+kaggle*/*.ipynb
+.venv/

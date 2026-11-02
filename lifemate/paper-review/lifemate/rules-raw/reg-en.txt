@@ -1,0 +1,527 @@
+=== page 1 ===
+1 
+ 
+COMPETITION REGULATIONS 
+Zalo AI Challenge 2026 
+1. General information and effectiveness of the regulations 
+1.1. Competition Information 
+Competition Name: The official name of the Competition is “Zalo AI Challenge 2026” 
+(hereinafter referred to as the “Competition” or “Zalo AI Challenge”). 
+Zalo AI Challenge 2026 is a skills competition organized by Zalo AI to promote the fields of 
+data science and artificial intelligence in Vietnam. 
+1.2. Definitions 
+In these Regulations, the following terms shall have the meanings set out below: 
+“Organizer” / “Zalo” / “We”: Zalo AI (VNG), the organizing entity responsible for 
+implementing, administering, reviewing, and awarding prizes for the Competition. 
+“Contestant” / “Participant” / “You”: An individual who meets the eligibility requirements 
+under these Regulations and registers to participate in the Competition either individually or as 
+a member of a Team. 
+“Team”: A group of Contestants formed and participating in the Competition in accordance 
+with these Regulations. 
+“Competition 
+Website”: 
+The 
+official 
+Zalo 
+AI 
+Challenge 
+online 
+portal 
+at 
+https://challenge.zalo.ai, used for registration, submission, announcement of results, and 
+updates relating to the Competition. 
+“Zalo Account”: An individual account on the Zalo platform, used to register and verify the 
+identity of a Contestant/Team. 
+“Competition Data”: All training datasets, public test data, and private test data provided by 
+the Organizer for research, development, and evaluation purposes within the Competition. 
+“Submission” / “Competition Entry”: All source code, models, documentation, ideas, or 
+products developed and submitted by a Contestant/Team during the Competition. 
+“Competition Code”: Code developed by a Contestant during the Competition, including 
+training code, testing code, or any code used to generate submission results. 
+
+=== page 2 ===
+2 
+ 
+“External Data”: Lawful datasets declared by the Contestant and additionally used during 
+training in accordance with these Regulations. 
+“Prize”: A cash or in-kind reward awarded by the Organizer to Teams/individuals achieving 
+high rankings based on duly verified results. 
+“Competition Period”: The entire period from the start date through the announcement of the 
+final results, including submission and prize evaluation milestones as announced on the 
+Competition Website. 
+“Personal Data”: Digital data or information in another form that identifies or helps identify 
+a specific individual, including basic personal data and sensitive personal data. 
+“Data Subject”: The individual to whom the Personal Data relates. 
+“Personal Data Protection Laws”: All Vietnamese laws and regulations relating to the 
+processing and protection of Personal Data, as amended from time to time, including but not 
+limited to the 2025 Personal Data Protection Law and Decree No. 356/2025/ND-CP. 
+1.3. Effectiveness and Acceptance of the Regulations 
+These Regulations of the Zalo AI Challenge 2026 (hereinafter referred to as the “Regulations”) 
+shall take effect from the date on which they are officially published by the Organizer through 
+the Competition’s information channels and shall apply throughout the participation, judging, 
+and prize-awarding process of the “Zalo AI Challenge 2026”. 
+By registering for the Competition, the Contestant confirms that they have read, understood, 
+and agreed to comply with all provisions of these Regulations, including the specific rules of 
+each challenge published on the Competition Website and any amendments or supplements (if 
+any). These Regulations constitute a legally binding agreement between the Organizer and the 
+Contestant/Team governing the entire participation, judging, and prize-awarding process of the 
+Competition. 
+You must agree to and comply with these Regulations in order to submit a Submission and be 
+eligible to receive a Prize. 
+By participating in the Competition and downloading Competition Data, you agree to comply 
+with Zalo’s Terms of Use at https://zalo.vn/dieukhoan/. 
+2. Eligibility for registration, accounts, and teams 
+
+=== page 3 ===
+3 
+ 
+2.1. Eligibility 
+To be eligible to participate, you must meet all of the following criteria: 
+(i) Hold Vietnamese nationality; 
+(ii) Be the holder of a valid Zalo Account; and 
+(iii) Be at least 18 years old or have reached the age of majority under the laws applicable at 
+your place of residence (unless otherwise agreed by the Organizer and you have obtained 
+lawful consent from a parent/legal guardian). 
+If participating as a Team, the Team Leader must ensure that all Team members have been 
+fully informed of and agreed to participate in the Competition under the terms and conditions 
+of these Regulations. 
+If you participate on behalf of a company, educational institution, or other legal entity as an 
+employee, collaborator, or representative, these Regulations shall bind both you and that 
+organization. You represent that the organization is aware of and has authorized your 
+participation and receipt of any Prize, and that your participation does not violate the 
+organization’s internal regulations. 
+Ineligible persons: Employees, collaborators, or any individuals who have entered into an 
+employment contract, service contract, or are working for VNG and companies within the 
+group are not permitted to register for the Competition in any form. 
+The Organizer reserves the right to verify eligibility and resolve disputes regarding eligibility 
+in cases of suspected violations or at the Organizer’s discretion. 
+2.2. Registration and Accounts 
+You are not required to purchase anything or make any payment to participate in the 
+Competition or receive a Prize. To register, you must create an account on the Competition 
+Website before the registration deadline and submit your Submission according to the 
+instructions. 
+You may participate in the Competition individually or as part of a Team. Each individual may 
+register for and participate in the Competition through only one (01) Zalo Account. Each 
+member must register individually before joining a Team. 
+
+=== page 4 ===
+4 
+ 
+Each Contestant may participate in only one (01) Team or participate individually; a Contestant 
+may not simultaneously participate in multiple Teams or participate both individually and as a 
+Team member. 
+Contestants or Teams may not use multiple accounts, fake accounts, or create multiple Teams 
+to submit Submissions and compete for Prizes contrary to these principles. Each Team member 
+having a separate account for registration and participation in the same Team in accordance 
+with these Regulations shall not be considered a violation. 
+2.3. Formation and Management of Teams 
+Each Team may have a maximum of five (05) members, including the Team Leader. 
+The Team Leader may remove or add members to the Team while continuing to comply fully 
+with these Regulations. 
+Submissions made by members who have subsequently been removed from the Team shall 
+remain counted toward the Team based on the time at which such individual made the 
+Submission. 
+The Team Leader may request deletion of the Team provided that (1) no members remain in 
+the Team and (2) the request is sent to the Organizer at aichallenge@zalo.me. 
+2.4. Team Merging 
+Team merging is permitted and shall be carried out by the Team Leader. After merging, the 
+resulting Team must comply with the member limit and Team-related provisions of these 
+Regulations. 
+Condition for merging Teams: The total number of Submissions made by the merged Team 
+must not exceed the maximum number of Submissions permitted as of the time of merging. 
+The maximum number of Submissions shall be calculated as: (Number of Submissions 
+permitted per day) × (Number of Competition days elapsed as of the time of merging). 
+3. Competition categories and schedule  
+The challenge content, datasets, pre-trained models, and specific requirements for each 
+challenge shall be published on the portal for each challenge on the Competition Website. 
+The Competition consists of two (02) rounds: the public test and the private test, taking place 
+from October to December 2026, in the GMT+7 time zone, as follows: 
+
+=== page 5 ===
+5 
+ 
+October 26, 2026: Start the challenge. The development kit, data (training & public test), and 
+evaluation software are made available. 
+November 16, 2026: Submit solutions. All teams submit solutions, including training code, 
+testing code, and models. Deadline: 23:59 (GMT+7). 
+November 20, 2026: Release private test. The leaderboard is provisional, based on results 
+submitted by participating teams and subject to verification. Release time: 9:00 (GMT+7). 
+November 23, 2026: Submit the final result. All teams submit their final results for the private 
+test set. Deadline: 23:59 (GMT+7). 
+December 2, 2026: The top 2 teams per track will be announced. 
+December 12, 2026: Final results are announced. 
+The Organizer may change the schedule or add interim deadlines throughout the process. All 
+updates will be announced on the Competition Website, and Participants are responsible for 
+monitoring such updates. 
+You must convert the time zone to the applicable time zone at your place of residence to ensure 
+timely submission. 
+4. Permitted data and resources 
+4.1. Competition Data 
+The Competition Data is divided into three (03) parts: training data, public test data, and private 
+test data. 
+As a general principle, Contestants should use the Competition Data for training and validation. 
+The Organizer does not encourage independently collecting data from other sources. 
+You may use Competition Data, including Personal Data contained in the datasets, solely for 
+non-commercial and academic purposes, including: participating in the Competition; 
+discussions on the challenge.zalo.ai forum; and academic or educational research. When using 
+the datasets, you must cite “challenge.zalo.ai”. At the end of the Competition Period, you must 
+delete or destroy Personal Data in accordance with personal data protection laws, data laws, 
+and other applicable laws. 
+The Organizer makes no representation or warranty regarding the accuracy, ownership, or 
+suitability of the data for any purpose other than those stated above. 
+
+=== page 6 ===
+6 
+ 
+4.2. Labeling and Additional Annotation 
+Contestants may add sub-labels or additional annotations to the provided training dataset. 
+Manually labeled information or human predictions may not be used on validation or test 
+datasets to create a Submission. 
+4.3. Data Security and Distribution Restrictions 
+You agree to apply reasonable and appropriate measures to prevent persons who are not 
+participating in the Competition and/or persons who have not formally agreed to these 
+Regulations from accessing or processing Competition Data. 
+Throughout the Competition Period, you may not privately share data outside your Team. You 
+may not transmit, copy for provision, publish, redistribute, or provide the Competition Data, 
+including Personal Data arising from or relating to the Competition, to any third party. 
+If you discover and/or suspect unauthorized access to or transmission of Competition Data, you 
+must immediately notify the Organizer and cooperate in remediation. 
+4.4. External Data 
+If you participate in a category that permits the use of external datasets during training 
+(“External Data”), you must comply with the following requirements: 
+External datasets must comply with applicable laws on artificial intelligence and Personal Data 
+Protection Laws and must not violate Vietnamese customs and traditions. 
+If you upload External Data during training, you understand and agree that such External Data 
+may contain Personal Data, and you confirm that you collected such data in compliance with 
+Personal Data Protection Laws and obtained appropriate consent as required by law to use such 
+External Data. You are responsible for the provision, processing, and use of External Data (if 
+it contains Personal Data) and for obtaining consent from relevant Data Subjects for the 
+purposes of the Competition in accordance with Personal Data Protection Laws. 
+If requested by the Organizer and/or a competent state authority to demonstrate compliance 
+with Personal Data Protection Laws, the Team/Contestant shall cooperate by providing 
+documents and evidence demonstrating compliance in using External Data. 
+If the Team cannot provide documents or evidence demonstrating legal compliance as 
+requested by the Organizer, the Team must cease using and delete/destroy the External Data; 
+otherwise, the Team’s Submission shall be deemed invalid. 
+
+=== page 7 ===
+7 
+ 
+Data uploaded by Participants will be stored and processed in accordance with personal data 
+protection laws, data laws, and other applicable laws. 
+You are solely responsible for uploading, processing, and using data, External Data, and 
+Personal Data. 
+4.5. Use of Open Source 
+If your model uses open-source software, you may only use libraries or source code with a 
+valid OSI-approved license (see opensource.org), without restrictions on commercial use, 
+unless the copyright owner or an authorized author has provided written permission for use 
+under other conditions compatible with participation in the Competition. The use of open 
+source must ensure that it does not result in unauthorized access to, collection, storage, 
+disclosure, provision, transfer, or processing of Personal Data in violation of applicable laws, 
+the purposes of the Competition, or data protection requirements prescribed by the Organizer. 
+5. Submissions and submission process 
+5.1. Submission Limits and Requirements 
+Each Team or individual Contestant may submit a maximum of five (05) Submissions per day 
+and may select only one (01) final Submission for official scoring. 
+Submissions must comply with the format, technical requirements, and deadlines specified on 
+the Competition Website. 
+Late Submissions will not be counted. 
+A Submission is invalid if it is unclear, incomplete, improperly modified, falsified, or 
+fraudulently submitted. 
+Contestants/Teams must submit valid Submissions at each stage as required to be considered 
+for Prizes. 
+5.2. Model Freeze and Final Solution Submission 
+Before the private test data is released, the Organizer will require Teams/Contestants to freeze 
+their models and submit the final solution, including training code, testing code, model, method 
+description, and instructions for running the code. 
+All final Submissions will be uploaded to servers designated by the Organizer; technical details 
+will be announced before the Competition begins. A model execution time limit will apply to 
+the private test data, as specified in the description of each category. 
+
+=== page 8 ===
+8 
+ 
+6. Scoring, ranking, and result verification 
+6.1. Scoring and Ranking 
+Each Submission will be scored and ranked according to the evaluation metric published on 
+the Competition Website. During the Competition, the public leaderboard will be updated in 
+real time based on results from the public test set (where two Submissions receive the same 
+score, the earlier Submission shall rank higher). 
+Winners are determined based on the results of the private test round, provided that they fully 
+comply with these Regulations. If a winner is disqualified or declines a Prize, the next eligible 
+Contestant with the next-highest score will be selected as a replacement. 
+6.2. Result Verification 
+When results are submitted on the private test data, the Organizer will check and compare them 
+with the results generated by the frozen model. 
+The Organizer may require potential winners to provide source code and documentation 
+demonstrating compliance before confirming the results. 
+The official leaderboard will be published on the Competition Website. 
+7. Prizes and prize claim procedures 
+7.1. Prize Structure 
+Each challenge has the following prize structure: 
+First Prize for each challenge: VND 90,412,000 in cash (equivalent to USD 3,500*). 
+Second Prize for each challenge: VND 64,580,000 in cash (equivalent to USD 2,500*). 
+*Converted based on the average buying/selling exchange rate of Vietnam Maritime 
+Commercial Joint Stock Bank on October 23, 2026. 
+The Organizer will withhold applicable taxes in accordance with Vietnamese law before 
+awarding Prizes to winning Contestants. 
+Prizes are announced on the Competition Website and are valid only during the specified 
+period. The chance of winning depends on the number of valid Submissions and the skill level 
+of the Contestants. 
+
+=== page 9 ===
+9 
+ 
+7.2. Prize Notification and Acceptance 
+Potential winners will be notified by email, telephone, and the Zalo application. 
+A potential winner will forfeit the right to receive the Prize if: (i) they do not respond within 
+one (01) week from the first contact attempt; or (ii) they notify the Organizer that they do not 
+wish to receive the Prize within one (01) week after the Competition ends. 
+To receive a Prize, the winner must fully perform the following obligations: 
+(a) Submit to the Organizer the final software source code used to create the winning 
+Submission, together with documentation, running instructions, and necessary resources; 
+(b) Grant the Organizer a license to use the winning Submission in accordance with Section 8 
+of these Regulations; 
+(c) Sign and return all documents confirming receipt of the Prize, including (i) valid 
+certification; and (ii) licenses, minutes, or other undertakings, if any. 
+The winner must submit the complete prize claim documents within two (02) weeks from the 
+date of notification; otherwise, the Prize will be canceled. The Prize will be awarded within 
+thirty (30) days after the Organizer receives all required documents. Prizes are non-transferable 
+and may not be assigned. 
+7.3. Taxes 
+All taxes relating to the Prize are the responsibility of the winner, unless otherwise provided 
+by law. 
+8. Intellectual property and code sharing 
+8.1. Ownership and Right to Use Submissions 
+The Competition Entry remains the property of its author; however, the Contestant/Team grants 
+the Organizer a non-exclusive, perpetual, royalty-free right to use, quote, present, publish, or 
+distribute the Competition Entry for research, promotional, educational, and communications 
+purposes related to the Competition without further consent or additional payment. 
+8.2. Source Code Sharing 
+Unless expressly permitted on the Competition Website or in the specific rules of a challenge, 
+throughout the Competition Period, you may not privately share Competition Code or 
+
+=== page 10 ===
+10 
+ 
+executable code developed based on Competition Data outside your Team. This includes 
+sharing between different Teams, unless the Teams have been validly merged. 
+Except for the private sharing expressly permitted above, throughout the Competition Period, 
+sharing Competition Code is permitted only if it is made publicly available to all Contestants 
+on the official Competition forum. Public disclosure of code must not infringe third-party 
+intellectual property rights or restrictions on sharing Competition Data. By publicly sharing 
+code, you are deemed to have agreed to license such code under an Open Source Initiative 
+(OSI)-recognized open-source license without restrictions on commercial use. 
+Contestants, particularly winning Teams/Contestants, are encouraged to publicly release their 
+solutions (source code) after the Competition ends to contribute to the development of artificial 
+intelligence (AI) in Vietnam. 
+9. Prohibited conduct and violation handling 
+9.1. Prohibited Conduct 
+Contestants must comply with the spirit and provisions of these Competition Regulations. 
+Fraud, falsification, threats, scams, harassment, use of unauthorized tools, intentional 
+disruption of the Competition Website, or conduct that negatively affects other Contestants, 
+the fairness, or the reputation of the Competition is strictly prohibited. 
+Contestants may not provide false information regarding identity, place of residence, address, 
+telephone number, email, ownership, or any other information relating to the Competition; use 
+data for improper purposes or beyond the permitted scope; or otherwise violate these 
+Regulations. 
+9.2. Violation Handling and Remediation 
+Any fraudulent conduct or violation of these Regulations may result in immediate 
+disqualification at the Organizer’s discretion. The Organizer has the right to reject non-
+compliant Submissions, suspend or terminate participation, cancel results, and/or remove 
+violating Contestants/Teams from the leaderboard. 
+For remediable violations, the Organizer may permit or require the Contestant/Team to remedy 
+the violation in accordance with these Regulations or the Organizer’s decision. All Prizes are 
+subject to the Organizer’s verification of validity and compliance. If a winning Submission 
+violates these Regulations and the violation is remediable, the Organizer may require 
+
+=== page 11 ===
+11 
+ 
+remediation within one (01) week, including resolving license conflicts, removing violating 
+software, or fulfilling outstanding obligations. 
+Intentional disruption of the Competition Website or fraud may be subject to criminal and civil 
+liability under Vietnamese law. 
+10. Collection, use, and protection of personal information and personal data 
+10.1. Scope and Purposes of Collection 
+By registering for the Competition, the Participant understands and agrees that the Organizer 
+may collect, store, use, and process personal information and Personal Data relating to 
+registration, participation, and prize awarding for the following purposes: 
+- 
+Verifying registered Participants and participation in the Competition: We use 
+information provided by Contestants to verify Contestants/Teams for registration and 
+participation, including but not limited to verifying eligibility, validity of Submissions, 
+and detecting and preventing impersonation, violations of the Regulations, and/or 
+impacts on the judging system; 
+- 
+Notifying 
+Contestants/Teams 
+of 
+Competition 
+information: 
+We 
+use 
+Contestant/Team information to contact and notify them about Competition 
+information and progress; 
+- 
+Evaluation and prize consideration: We use Contestant/Team information to score, 
+announce results, award Prizes, and perform related legal procedures; 
+- 
+Communication and promotion of the Competition: We use the names, information, 
+and images of Contestants/Teams, including Contestants/Teams that do not win, for 
+publication, introduction, communications, and posting in the press, television, and 
+partner channels in connection with the Competition and related programs, events, and 
+activities. Participants agree that the Organizer and its affiliates may use their names 
+and images within the scope stated above without additional compensation, unless 
+otherwise required by law; 
+- 
+Development and improvement of the Competition: We use information provided 
+by Contestants/Teams to improve quality, optimize and technically process the 
+Competition, enhance operational quality, ensure platform system security, and 
+improve the Competition organization process; and 
+- 
+Compliance with laws: including requests from competent state authorities or for audit 
+and reporting purposes. 
+
+=== page 12 ===
+12 
+ 
+10.2. Types of Information Collected 
+a. Basic Personal Data provided by Participants, including: information provided by 
+Contestants to identify themselves when creating an Account and throughout the Competition, 
+including telephone number, full name, date of birth, gender, ID card/Citizen ID/Passport 
+information, tax identification number, personal image, email address; city of residence; 
+information about current or previous educational institutions; and 
+Team information provided includes the Team name, member list, roles, and contact 
+information. The person providing Team members’ Personal Data shall ensure that all members 
+have provided appropriate consent in accordance with Personal Data Protection Laws before 
+such data is provided. 
+b. Sensitive Personal Data provided by Participants, including: 
+Payment-related information: payment information voluntarily provided by Participants for 
+prize payment purposes if they win, including bank account information for receiving Prizes. 
+c. Other data automatically collected by Us, including information relating to the operating 
+system and device, such as version, default language, device signal quality, cookie information, 
+battery status, application interaction data, connection status, incident data, performance, 
+operating system, browser, network information, and similar types of data, as well as Account 
+activity when using the Competition Website, including the time and frequency of Account 
+activity on the Competition Website, activities performed by Participants through their 
+Accounts, and incident reports. 
+10.3. Sharing, Storage, and Processing of Personal Data 
+Participants understand and consent that the Organizer will not share, disclose, or transfer 
+Contestant information to any third party, except in the following cases: 
+- 
+With the consent of the Contestant/Team for purposes under these Regulations; 
+- 
+Upon a lawful request from a competent authority; 
+- 
+When sharing is necessary for organizing, judging, or communicating the Competition 
+and the recipient is subject to corresponding confidentiality obligations; 
+- 
+Publication of the name, image, and Personal Data (to the extent necessary) of 
+Contestants/Teams on official communication channels relating to the Competition and 
+related programs, events, and activities for the purposes stated in these Regulations; 
+and 
+
+=== page 13 ===
+13 
+ 
+- 
+Other cases as provided by law. 
+In cases where Participants’ personal information or Personal Data must be shared with a third 
+party, the Organizer will ensure that such data is stored only for the period necessary to serve 
+the purposes of the Competition Regulations and is protected in accordance with these 
+Regulations, the Participant’s consent, and/or applicable law. 
+The Organizer shall store and process Personal Data in accordance with personal data 
+protection laws, data laws, and other applicable laws. 
+10.4. Exercise of Data Subject Rights 
+Contestants have the right to exercise Data Subject rights, including: 
+- 
+Request access to, correction of, or updates to the personal information they have 
+provided; 
+- 
+Request the Organizer to delete, destroy, or cease processing data when they are no 
+longer participating in the Competition; and 
+- 
+Other rights provided by applicable law. 
+Contestants may contact the Organizer at aichallenge@zalo.me to exercise their rights relating 
+to their personal information and shall follow the Organizer’s response. 
+10.5. Security Measures 
+The Organizer undertakes to apply necessary technical and organizational measures to protect 
+Contestants’ Personal Data from loss, unauthorized access, alteration, disclosure, or 
+destruction. All Personal Data processing activities shall comply with Personal Data Protection 
+Law No. 91/2025/QH15, Decree No. 356/2025/ND-CP, and relevant Vietnamese laws. 
+10.6. Promotion and Communications 
+Participants understand and consent that the Organizer may send notices, invitations, or 
+promotional information about the Competition and related artificial intelligence (AI) 
+programs, events, and activities by email, the Zalo application, and the Organizer’s 
+communication channels. The frequency and content of communications will be controlled in 
+compliance with applicable advertising laws. 
+11. Indemnification and limitation of liability 
+
+=== page 14 ===
+14 
+ 
+11.1. Representations and Indemnification 
+You represent that your Submission is your original work and does not infringe any third 
+party’s copyright or intellectual property rights. 
+You agree to indemnify and hold the Organizer harmless from any claims, damages, or costs 
+arising from: 
+(a) The Submission’s infringement of another person’s copyright, trademark, patent, and/or 
+confidentiality obligations; 
+(b) Provision of false information; use of Competition Data, External Data, or Personal Data 
+in violation of these Regulations or applicable laws; 
+(c) Failure to comply with these Regulations or the law; 
+(d) Third-party claims relating to you; and 
+(e) Your receipt, use, or misuse of the Prize. 
+In the event of any dispute, complaint, lawsuit, and/or claim for compensation relating to or 
+arising from data uploaded, processed, or used by you, you shall defend and hold the Organizer 
+(including its employees, officers, and agents) harmless from all claims arising from or relating 
+to the use of data and Personal Data, including but not limited to unauthorized copying or use 
+of copyrighted materials. 
+11.2. Disclaimer of Liability 
+You release the Organizer from all liability relating to: 
+(a) Technical errors, errors in the Competition Website or systems, including network errors, 
+connection interruptions, transmission errors, software/hardware damage, or Internet system 
+errors affecting submission; 
+(b) Errors in data collection or processing; and 
+(c) Errors in printing, displaying, or announcing Prizes. 
+11.3. Relationship Between the Parties 
+Participation in the Competition or receipt of a Prize does not constitute an employment 
+contract or an offer of employment with the Organizer. 
+You acknowledge that your participation is entirely voluntary and does not create an 
+employment or agency relationship with the Organizer. 
+
+=== page 15 ===
+15 
+ 
+12. General provisions 
+12.1. Changes, Suspension, or Cancellation of the Competition 
+The Organizer has full discretion to consider, adjust, supplement, or amend these Competition 
+Regulations, challenge content, competition format, schedule, and prize structure where 
+necessary to ensure alignment with actual conditions. 
+Any changes (if any) will be publicly announced by the Organizer through the Competition’s 
+official channels and shall take effect from the time the notice is published. 
+If the Competition is affected by viruses, fraud, unauthorized interference, or other technical 
+incidents that prevent normal operation, the Organizer has the right to cancel, stop, modify, or 
+suspend the Competition. 
+12.2. Complaints and Decisions of the Organizer 
+All complaints relating to results or the organization of the Competition will only be accepted 
+within 07 (seven) working days from the date the official results are announced. 
+The Organizer has the right to refuse to process complaints submitted after the above deadline 
+or without valid supporting evidence. 
+In all cases, the Organizer’s decision is final in matters relating to the organization, scoring, 
+prize consideration, prize awarding, violation handling, and complaint resolution of the 
+Competition; Contestants/Teams agree to accept such decision as a mandatory condition of 
+participation. 
+12.3. Governing Law and Dispute Resolution 
+Unless otherwise provided in the specific rules of a challenge, all disputes arising from these 
+Regulations shall be governed by the laws of Vietnam. The parties agree to submit to the 
+jurisdiction of the courts of Vietnam. If any provision of these Regulations is invalid, the 
+remaining provisions shall remain in effect. 
+12.4. Contact 
+All requests, notices, and complaints relating to the Competition shall be sent to the Organizer 
+at 
+aichallenge@zalo.me. 
+ 
+ 
+

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tỉ lệ dữ liệu irrelevance</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../_assets/common.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<style>
+.page{max-width:780px;margin:0 auto}
+.crumbs{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:14px;margin-bottom:14px}
+.detail h1{margin-bottom:6px}
+.detail .sec{margin-top:18px}
+.detail .sec>.k{font-size:12px;font-weight:600;color:var(--mute);text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px}
+.origin{border-radius:var(--r);padding:10px 14px;background:var(--soft);font-size:14px}
+.done{display:inline-flex;gap:8px;align-items:center;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:var(--r);background:var(--soft)}
+.pager{display:flex;justify-content:space-between;gap:10px;margin-top:8px}
+.pager a{flex:1;padding:10px 14px;border-radius:8px;box-shadow:var(--lift);text-decoration:none;font-size:14px}
+.pager a:hover{box-shadow:var(--lift-hi)}
+.pager a.next{text-align:right}
+.pager small{display:block;color:var(--mute);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap"><div class="page detail" id="detail"></div></div>
+
+<script src="../../_assets/common.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" defer></script>
+<script>
+const DATA = {"topic": "lifemate", "paper": {"id": "chen-2025-hammer", "title": "Hammer: Robust Function-Calling for On-Device Language Models via Function Masking", "venue": "ICLR", "year": 2025, "url": "https://arxiv.org/abs/2410.04587"}, "labels": {"candidate-function": "Candidate function", "fc-vs-prompt": "FC mode vs Prompt mode", "irrelevance-detection": "Irrelevance detection", "naming-overreliance": "Model phụ thuộc vào tên function / tham số", "xlam-60k": "xlam-function-calling-60k", "function-masking": "Function masking", "masking-ratio": "Masking ratio", "irrelevance-augmented": "Irrelevance-augmented data", "irrelevance-ratio": "Tỉ lệ dữ liệu irrelevance", "ast-eval": "AST evaluation", "exec-eval": "Executable function evaluation", "bfcl": "BFCL v2", "f1-func-args": "F1 Func-Name / F1 Func+Args", "academic-benchmarks": "API-Bank, Tool-Alpaca, Seal-Tools, Nexus Raven", "qwen-base": "Base model: Qwen 1.5B / 4B / 7B", "__target": "Hammer: SFT với function masking + dữ liệu irrelevance"}, "node": {"id": "irrelevance-ratio", "label": "Tỉ lệ dữ liệu irrelevance", "kind": "đại lượng", "requires": ["irrelevance-augmented"], "origin": {"type": "new", "evidence": "\"the Hammer model achieves optimal overall performance when the proportion of irrelevance-augmented data is approximately 10%\" (p.10)"}, "short": "Nhiều mẫu irrelevance: từ chối tốt hơn nhưng gọi function kém hơn. Paper chọn khoảng 10%.", "summary": "Ablation: lấy tổng 10,000 mẫu từ hai nguồn (irrelevance và xlam) với tỉ lệ khác nhau, fine-tune Qwen2-1.5B-Instruct, test trên BFCL. Điểm irrelevance và điểm gọi function đi ngược chiều nhau; overall tốt nhất ở khoảng 10%, nên tác giả chọn 7.5K mẫu.", "visuals": [{"type": "bars", "title": "Hình dung đánh đổi (số minh hoạ, không phải số của paper)", "max": 100, "items": [{"label": "0% irrelevance: gọi function", "value": 80}, {"label": "0% irrelevance: từ chối", "value": 40}, {"label": "10%: gọi function", "value": 77, "highlight": true}, {"label": "10%: từ chối", "value": 70, "highlight": true}, {"label": "50%: gọi function", "value": 60}, {"label": "50%: từ chối", "value": 90}], "note": "Hướng của xu hướng lấy từ Figure 6 (p.10); độ lớn các cột là minh hoạ."}], "formulas": [{"expr": "r = \\frac{N_{irr}}{N_{irr} + N_{xlam}}", "say": "Tỉ lệ bằng số mẫu irrelevance chia cho tổng số mẫu irrelevance cộng số mẫu xlam.", "symbols": [["N_{irr}", "số mẫu irrelevance trong 10,000 mẫu"], ["N_{xlam}", "số mẫu lấy từ xlam-function-calling"]], "src": "Section 5.6 (p.10)"}], "why": "Cho biết lượng dữ liệu từ chối không nên quá nhiều.", "inPaper": "Section 5.6, Figure 6 (p.10)", "body": "- Tác giả lưu ý tỉ lệ này phụ thuộc model và dữ liệu, chỉ dùng tham khảo (p.10).\n- Với LifeMate: tỉ lệ mẫu `[]` và `sys.ask_missing_info` trong dữ liệu train nên bám theo tỉ lệ các ca này trong public test, chứ không cố định 10% [nhận xét của AI]."}, "hasDeepDive": false, "isTarget": false, "prev": "irrelevance-augmented", "next": "ast-eval"};
+const {esc, md} = RP;
+const KEY = `rp:${DATA.topic}:learned`;
+let learned = new Set(RP.store.get(KEY, []));
+const ORIGIN = {prior: "Có từ trước, paper dùng lại", adapted: "Kế thừa có thay đổi", renamed: "Tên mới cho phương pháp đã có", new: "Tác giả đề xuất mới"};
+const L = DATA.labels;
+const page = id => `${id === "__target" ? "_target" : id}.html`;
+const nodeLink = (id, text) => L[id] ? `<a href="${page(id)}">${esc(text || L[id])}</a>` : esc(text || id);
+const sec = (k, html) => html ? `<div class="sec"><div class="k">${k}</div>${html}</div>` : "";
+const n = DATA.node, o = n.origin || {}, f = o.from;
+const pager = `<div class="sec pager">${DATA.prev ? `<a href="${page(DATA.prev)}"><small>← Trước</small>${esc(L[DATA.prev])}</a>` : "<span></span>"}` +
+  (DATA.next ? `<a class="next" href="${page(DATA.next)}"><small>Tiếp theo →</small>${esc(L[DATA.next])}</a>` : "<span></span>") + `</div>`;
+const crumbs = `<div class="crumbs"><a href="../roadmap.html">← Roadmap</a>${DATA.hasDeepDive ? `<a href="../deep-dive.html">Deep dive</a>` : ""}<span class="muted">${esc(DATA.paper.title)}</span></div>`;
+
+let html;
+if (DATA.isTarget) {
+  html = crumbs + `<h1>${esc(n.label)}</h1><div class="row"><span class="badge acc">Solution của paper</span></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Cần nắm trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) + pager;
+} else {
+  html = crumbs +
+    `<h1>${esc(n.label)}</h1><div class="row"><span class="badge">${esc(n.kind || "")}</span><span class="badge ${o.type === "new" ? "solid" : o.type === "prior" ? "" : "acc"}">${esc(ORIGIN[o.type] || "")}</span>${n.inPaper ? `<span class="src">Trong paper: ${esc(n.inPaper)}</span>` : ""}</div>` +
+    `<div class="sec"><label class="done"><input type="checkbox" id="done" ${learned.has(n.id) ? "checked" : ""}> Đã học xong node này</label></div>` +
+    sec("Là gì", md(n.summary, nodeLink)) +
+    sec("Hình minh hoạ", (n.visuals || []).map(v => RP.visual(v, nodeLink)).join("")) +
+    sec("Công thức", (n.formulas || []).map(RP.formula).join("")) +
+    sec("Ví dụ", md(n.example, nodeLink)) +
+    sec("Vì sao cần cho paper này", md(n.why, nodeLink)) +
+    sec("Chi tiết", md(n.body, nodeLink)) +
+    sec("Nguồn gốc", `<div class="origin"><b>${esc(ORIGIN[o.type] || "")}</b>` +
+      (f ? `<br>${f.url ? `<a href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.title)}</a>` : esc(f.title || "")} <span class="muted">${esc([f.authors, f.venue, f.year].filter(Boolean).join(", "))}</span>` : "") +
+      (o.evidence ? `<blockquote>${md(o.evidence, nodeLink)}</blockquote>` : "") + (o.note ? md(o.note, nodeLink) : "") + `</div>`) +
+    sec("Cần học trước", (n.requires || []).map(r => nodeLink(r)).join(", ")) +
+    sec("Đọc thêm", n.links?.length ? `<ul>${n.links.map(l => `<li><a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.title)}</a></li>`).join("")}</ul>` : "") +
+    pager;
+}
+document.getElementById("detail").innerHTML = html;
+document.title = `${n.label} · Roadmap`;
+const done = document.getElementById("done");
+if (done) done.onchange = () => { done.checked ? learned.add(n.id) : learned.delete(n.id); RP.store.set(KEY, [...learned]); };
+window.addEventListener("load", () => RP.math());
+</script>
+</body>
+</html>

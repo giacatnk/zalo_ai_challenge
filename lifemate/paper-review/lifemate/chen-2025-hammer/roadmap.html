@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roadmap: Hammer: Robust Function-Calling for On-Device Language Models via Function Maskin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../_assets/common.css">
+<style>
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0 16px}
+.progress{flex:1;min-width:160px;height:8px;background:var(--tag);border-radius:4px;overflow:hidden}
+.progress div{height:100%;background:var(--acc);width:0}
+.graphbox{border-radius:10px;box-shadow:var(--lift);overflow-x:auto;background:var(--bg);padding:8px 0}
+.graph{position:relative;margin:0 auto}
+.graph svg{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.graph path{fill:none;stroke:var(--line2);stroke-width:1.5}
+.graph path.hot{stroke:var(--acc);stroke-width:2}
+.node{position:absolute;width:180px;border:1px solid var(--line2);border-radius:6px;background:var(--bg);padding:7px 9px 7px 30px;cursor:pointer;font-size:13px;line-height:1.35;text-decoration:none;color:inherit}
+.node:hover{border-color:var(--ink)}
+.node .kind{display:block;font-size:11px;color:var(--mute);margin-top:2px}
+.node input{position:absolute;left:8px;top:9px}
+.node.o-adapted{border-color:var(--acc)}
+.node.o-renamed{border-color:var(--warn);border-style:dashed}
+.node.o-new{border-color:var(--ink);border-width:2px}
+.node.learned{background:var(--soft);color:var(--mute)}
+.node.learned b{text-decoration:line-through;text-decoration-color:var(--line2)}
+.node.endpoint{padding-left:9px}
+.node.start{background:var(--soft);cursor:default}
+.node.target{background:var(--acc-soft);border:2px solid var(--acc)}
+.node.target .kind{color:var(--acc)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--mute);margin-top:12px}
+.legend i{display:inline-block;width:18px;height:11px;border:1px solid var(--line2);border-radius:3px;vertical-align:-1px;margin-right:4px}
+.legend .o-adapted{border-color:var(--acc)}
+.legend .o-renamed{border-color:var(--warn);border-style:dashed}
+.legend .o-new{border:2px solid var(--ink)}
+.pop{position:fixed;z-index:20;max-width:320px;background:var(--bg);border-radius:8px;box-shadow:var(--lift-hi);padding:10px 12px;font-size:13px;line-height:1.5;pointer-events:none;display:none}
+.pop b{display:block;font-size:13.5px;margin-bottom:2px}
+.pop .badge{margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="crumbs small"><a href="../01-papers.html">← Danh sách paper</a></div>
+  <h1 id="title"></h1>
+  <p class="sub" id="meta"></p>
+  <div class="top">
+    <div class="progress"><div id="prog"></div></div>
+    <span class="small" id="progTxt"></span>
+    <button id="copy">Copy tiến độ để gửi Claude</button>
+    <a class="btn" href="deep-dive.html" id="deep">Mở deep dive</a>
+  </div>
+  <div class="graphbox"><div class="graph" id="graph"><svg id="edges"><defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--line2);stroke:none"/></marker>
+    <marker id="ahHot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="10" markerHeight="10" markerUnits="userSpaceOnUse" orient="auto"><path d="M0,0 L10,5 L0,10 z" style="fill:var(--acc);stroke:none"/></marker>
+  </defs></svg></div></div>
+  <div class="legend">
+    <span><i></i>Có từ trước, paper dùng lại</span>
+    <span><i class="o-adapted"></i>Kế thừa có thay đổi</span>
+    <span><i class="o-renamed"></i>Tên mới cho phương pháp đã có</span>
+    <span><i class="o-new"></i>Tác giả đề xuất mới</span>
+    <span>Mũi tên A → B: học A trước B. Rê chuột để xem tóm tắt, bấm để mở trang chi tiết.</span>
+  </div>
+</div>
+<div class="pop" id="pop"></div>
+
+<script src="../_assets/common.js"></script>
+<script>
+const DATA = {"topic": "lifemate", "paper": {"id": "chen-2025-hammer", "title": "Hammer: Robust Function-Calling for On-Device Language Models via Function Masking", "venue": "ICLR", "year": 2025, "url": "https://arxiv.org/abs/2410.04587"}, "start": {"label": "Bạn đang ở đây", "known": ["Transformer + LLM decoder", "SFT / LoRA", "Function calling (tool schema JSON, model sinh tool call)"], "note": "Bạn đã biết LLM decoder, SFT/LoRA và cách function calling chạy. Roadmap bắt đầu từ cấu trúc của một candidate function và đi tới cách Hammer train + đánh giá. Trang PDF trích theo bản arXiv v2 (pdf/chen-2025-hammer.pdf)."}, "order": ["candidate-function", "naming-overreliance", "xlam-60k", "function-masking", "masking-ratio", "irrelevance-detection", "irrelevance-augmented", "irrelevance-ratio", "ast-eval", "exec-eval", "fc-vs-prompt", "bfcl", "f1-func-args", "academic-benchmarks", "qwen-base"], "hasDeepDive": false, "target": {"label": "Hammer: SFT với function masking + dữ liệu irrelevance", "summary": "Fine-tune Qwen 1.5B/4B/7B trên [[xlam-60k]] cộng 7,500 mẫu [[irrelevance-augmented]]. Trong lúc train, [[function-masking]] thay tên function và tên tham số bằng chuỗi ngẫu nhiên để model đọc description thay vì nhớ tên (chữa [[naming-overreliance]]). Tỉ lệ dữ liệu irrelevance chọn theo [[irrelevance-ratio]]. Đánh giá trên [[bfcl]] và [[academic-benchmarks]].", "requires": ["function-masking", "masking-ratio", "irrelevance-ratio", "bfcl", "academic-benchmarks", "qwen-base"]}, "nodes": [{"id": "candidate-function", "label": "Candidate function", "kind": "khái niệm", "short": "Một function đưa cho model chọn: tên, tên tham số, default value, description.", "requires": [], "origin": {"type": "prior"}}, {"id": "fc-vs-prompt", "label": "FC mode vs Prompt mode", "kind": "khái niệm", "short": "FC: model dùng định dạng tool call gốc của nó. Prompt: tự viết prompt rồi tách call từ text.", "requires": ["candidate-function"], "origin": {"type": "prior"}}, {"id": "irrelevance-detection", "label": "Irrelevance detection", "kind": "bài toán", "short": "Khi không candidate nào làm được yêu cầu, model phải trả danh sách rỗng thay vì gọi bừa.", "requires": ["candidate-function"], "origin": {"type": "prior"}}, {"id": "naming-overreliance", "label": "Model phụ thuộc vào tên function / tham số", "kind": "khái niệm", "short": "Model đoán chức năng từ tên (vd fetch_data) thay vì đọc description, nên sai khi tên quen nhưng nghĩa khác.", "requires": ["candidate-function"], "origin": {"type": "new"}}, {"id": "xlam-60k", "label": "xlam-function-calling-60k", "kind": "dataset", "short": "60K mẫu function calling single-turn do pipeline APIGen sinh và kiểm 3 tầng (format, thực thi, ngữ nghĩa).", "requires": ["candidate-function"], "origin": {"type": "prior"}}, {"id": "function-masking", "label": "Function masking", "kind": "phương pháp", "short": "Lúc train, thay tên function và tên tham số bằng chuỗi ngẫu nhiên (đổi luôn trong nhãn) để model phải đọc description.", "requires": ["naming-overreliance", "xlam-60k"], "origin": {"type": "new"}}, {"id": "masking-ratio", "label": "Masking ratio", "kind": "đại lượng", "short": "Tỉ lệ mẫu trong batch bị mask. Mask nhiều: tổng quát tốt hơn sang benchmark khác, nhưng học chậm hơn trên chính task train.", "requires": ["function-masking"], "origin": {"type": "new"}}, {"id": "irrelevance-augmented", "label": "Irrelevance-augmented data", "kind": "dataset", "short": "7,500 mẫu lấy từ xlam-60k, bỏ function đúng khỏi danh sách candidate, nhãn đổi thành [].", "requires": ["irrelevance-detection", "xlam-60k"], "origin": {"type": "new"}}, {"id": "irrelevance-ratio", "label": "Tỉ lệ dữ liệu irrelevance", "kind": "đại lượng", "short": "Nhiều mẫu irrelevance: từ chối tốt hơn nhưng gọi function kém hơn. Paper chọn khoảng 10%.", "requires": ["irrelevance-augmented"], "origin": {"type": "new"}}, {"id": "ast-eval", "label": "AST evaluation", "kind": "metric", "short": "Parse call model sinh ra thành cây cú pháp rồi so tên function, tham số bắt buộc, kiểu dữ liệu với tài liệu function, không cần chạy.", "requires": ["candidate-function"], "origin": {"type": "prior"}}, {"id": "exec-eval", "label": "Executable function evaluation", "kind": "metric", "short": "Chạy thật call model sinh ra và so kết quả với đáp án.", "requires": ["ast-eval"], "origin": {"type": "prior"}}, {"id": "bfcl", "label": "BFCL v2", "kind": "dataset", "short": "Benchmark chuẩn cho function calling: simple, multiple, parallel, parallel multiple, relevance/irrelevance, nhiều ngôn ngữ.", "requires": ["ast-eval", "exec-eval", "irrelevance-detection", "fc-vs-prompt"], "origin": {"type": "prior"}}, {"id": "f1-func-args", "label": "F1 Func-Name / F1 Func+Args", "kind": "metric", "short": "F1 giữa tập call dự đoán và tập call đúng; Func-Name chỉ so tên, Func+Args so cả tên lẫn tham số.", "requires": ["candidate-function"], "origin": {"type": "prior"}}, {"id": "academic-benchmarks", "label": "API-Bank, Tool-Alpaca, Seal-Tools, Nexus Raven", "kind": "dataset", "short": "4 benchmark ngoài BFCL, đều out-of-domain với dữ liệu train của Hammer, dùng để đo độ ổn định.", "requires": ["f1-func-args"], "origin": {"type": "prior"}}, {"id": "qwen-base", "label": "Base model: Qwen 1.5B / 4B / 7B", "kind": "thành phần", "short": "Hammer-1.5B từ Qwen2-1.5B-Instruct, Hammer-4B từ Qwen1.5-4B-Chat, Hammer-7B từ Qwen2-7B-Instruct; có thêm bản thử trên Deepseek-Coder.", "requires": [], "origin": {"type": "prior"}}]};
+const {esc} = RP;
+const KEY = `rp:${DATA.topic}:learned`;
+let learned = new Set(RP.store.get(KEY, []));
+const ORIGIN = {prior: "Có từ trước, paper dùng lại", adapted: "Kế thừa có thay đổi", renamed: "Tên mới cho phương pháp đã có", new: "Tác giả đề xuất mới"};
+const byId = Object.fromEntries(DATA.nodes.map(n => [n.id, n]));
+const START = "__start", TARGET = "__target";
+const href = id => `nodes/${id === TARGET ? "_target" : id}.html`;
+if (!DATA.hasDeepDive) document.getElementById("deep").remove();
+
+document.getElementById("title").textContent = `Roadmap: ${DATA.paper.title}`;
+document.getElementById("meta").innerHTML = `${esc(DATA.paper.venue || "")} ${esc(DATA.paper.year || "")} · ${DATA.nodes.length} khái niệm cần nắm trước khi đọc deep dive` + (DATA.paper.url ? ` · <a href="${esc(DATA.paper.url)}" target="_blank" rel="noopener">paper</a>` : "");
+
+// ---- graph structure ----
+const reqs = {};
+DATA.nodes.forEach(n => { const r = (n.requires || []).filter(id => byId[id]); reqs[n.id] = r.length ? r : [START]; });
+const hasChild = new Set(DATA.nodes.flatMap(n => reqs[n.id]));
+reqs[TARGET] = (DATA.target.requires || []).filter(id => byId[id]);
+if (!reqs[TARGET].length) reqs[TARGET] = DATA.nodes.filter(n => !hasChild.has(n.id)).map(n => n.id);
+reqs[START] = [];
+const real = [START, ...DATA.nodes.map(n => n.id), TARGET];
+
+const layer = {};
+const visiting = new Set();
+function L(id) {
+  if (id in layer) return layer[id];
+  if (visiting.has(id)) return 0; // a cycle in requires is a data error; break it instead of hanging
+  visiting.add(id);
+  const v = reqs[id].length ? 1 + Math.max(...reqs[id].map(L)) : 0;
+  visiting.delete(id);
+  return layer[id] = v;
+}
+real.forEach(L);
+layer[TARGET] = Math.max(...DATA.nodes.map(n => layer[n.id]), 0) + 1;
+
+// Edges that skip layers get one dummy point per intermediate layer, so they are routed through
+// the gaps between nodes instead of being drawn behind them (standard layered-graph layout).
+const edges = [], up = {}, down = {};
+const link = (a, b) => { (down[a] ||= []).push(b); (up[b] ||= []).push(a); };
+const isDummy = id => id.startsWith("~");
+real.forEach(id => reqs[id].forEach(p => {
+  const chain = [p];
+  for (let l = layer[p] + 1; l < layer[id]; l++) { const d = `~${p}>${id}@${l}`; layer[d] = l; chain.push(d); }
+  chain.push(id);
+  for (let i = 1; i < chain.length; i++) link(chain[i - 1], chain[i]);
+  edges.push({from: p, to: id, chain});
+}));
+const all = [...real, ...Object.keys(layer).filter(isDummy)];
+const layers = Array.from({length: layer[TARGET] + 1}, () => []);
+all.forEach(id => layers[layer[id]].push(id));
+
+const pos = id => layers[layer[id]].indexOf(id) / Math.max(1, layers[layer[id]].length - 1);
+for (let it = 0; it < 8; it++) {
+  const goDown = it % 2 === 0;
+  const seq = goDown ? layers.slice(1) : layers.slice(0, -1).reverse();
+  seq.forEach(ly => {
+    const bc = id => { const nb = (goDown ? up[id] : down[id]) || []; return nb.length ? nb.reduce((s, x) => s + pos(x), 0) / nb.length : pos(id); };
+    const score = new Map(ly.map(id => [id, bc(id)]));
+    ly.sort((a, b) => score.get(a) - score.get(b));
+  });
+}
+
+// ---- render nodes ----
+const graph = document.getElementById("graph"), svg = document.getElementById("edges");
+const label = id => id === START ? DATA.start.label : id === TARGET ? DATA.target.label : byId[id].label;
+function nodeEl(id) {
+  const d = document.createElement("div");
+  d.dataset.id = id;
+  if (id === START) {
+    d.className = "node endpoint start";
+    d.innerHTML = `<b>${esc(label(id))}</b>${DATA.start.known?.length ? `<span class="kind">Đã biết: ${esc(DATA.start.known.join(", "))}</span>` : ""}`;
+  } else if (id === TARGET) {
+    d.className = "node endpoint target";
+    d.innerHTML = `<b>${esc(label(id))}</b><span class="kind">Solution của paper</span>`;
+  } else {
+    const n = byId[id];
+    d.className = `node o-${n.origin?.type || "prior"}`;
+    d.innerHTML = `<input type="checkbox" title="Đã học"><b>${esc(n.label)}</b><span class="kind">${esc(n.kind || "")}</span>`;
+  }
+  return d;
+}
+const els = {};
+real.forEach(id => { els[id] = nodeEl(id); graph.appendChild(els[id]); });
+
+const W = 180, DW = 12, GX = 22, GY = 56, PAD = 24;
+const box = {};
+const paths = [];
+function layout() {
+  const rowH = layers.map(ly => Math.max(30, ...ly.filter(id => els[id]).map(id => els[id].offsetHeight)));
+  const width = id => isDummy(id) ? DW : W;
+  const rowW = layers.map(ly => ly.reduce((s, id) => s + width(id), 0) + GX * (ly.length - 1));
+  const Wmax = Math.max(...rowW);
+  let y = PAD;
+  layers.forEach((ly, i) => {
+    let x = PAD + (Wmax - rowW[i]) / 2;
+    ly.forEach(id => {
+      const h = els[id] ? els[id].offsetHeight : rowH[i];
+      box[id] = {x, y: y + (rowH[i] - h) / 2, w: width(id), h};
+      if (els[id]) { els[id].style.left = `${x}px`; els[id].style.top = `${box[id].y}px`; }
+      x += width(id) + GX;
+    });
+    y += rowH[i] + GY;
+  });
+  const w = Wmax + PAD * 2, h = y - GY + PAD;
+  graph.style.width = `${w}px`; graph.style.height = `${h}px`;
+  svg.setAttribute("width", w); svg.setAttribute("height", h);
+  paths.forEach(p => p.remove()); paths.length = 0;
+  edges.forEach(e => {
+    // Points: bottom of source, then through each dummy (top and bottom of its row), then top of target.
+    const pts = [];
+    e.chain.forEach((id, i) => {
+      const b = box[id], cx = b.x + b.w / 2;
+      if (i > 0) pts.push([cx, b.y - (i === e.chain.length - 1 ? 1 : 0)]);
+      if (i < e.chain.length - 1) pts.push([cx, b.y + b.h]);
+    });
+    let d = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 1; i < pts.length; i++) {
+      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+      if (x0 === x1) { d += ` L${x1},${y1}`; continue; }
+      const m = (y1 - y0) / 2;
+      d += ` C${x0},${y0 + m} ${x1},${y1 - m} ${x1},${y1}`;
+    }
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", d);
+    path.setAttribute("class", "e"); path.dataset.from = e.from; path.dataset.to = e.to;
+    path.setAttribute("marker-end", "url(#ah)");
+    svg.appendChild(path); paths.push(path);
+  });
+}
+
+let hotPaths = [];
+function highlight(id) {
+  hotPaths.forEach(p => { p.classList.remove("hot"); p.setAttribute("marker-end", "url(#ah)"); });
+  hotPaths = id ? paths.filter(p => p.dataset.from === id || p.dataset.to === id) : [];
+  hotPaths.forEach(p => { p.classList.add("hot"); p.setAttribute("marker-end", "url(#ahHot)"); });
+}
+
+function syncLearned() {
+  RP.store.set(KEY, [...learned]);
+  DATA.nodes.forEach(n => {
+    els[n.id].classList.toggle("learned", learned.has(n.id));
+    els[n.id].querySelector("input").checked = learned.has(n.id);
+  });
+  const done = DATA.nodes.filter(n => learned.has(n.id)).length;
+  document.getElementById("prog").style.width = `${DATA.nodes.length ? done / DATA.nodes.length * 100 : 0}%`;
+  document.getElementById("progTxt").textContent = `${done}/${DATA.nodes.length} đã học`;
+}
+
+// ---- events ----
+// Hover work runs only when the pointer moves onto a different node, not on every child element.
+const pop = document.getElementById("pop");
+let hoverId = null, raf = 0, mx = 0, my = 0;
+graph.addEventListener("mouseover", e => {
+  const n = e.target.closest(".node");
+  const id = n ? n.dataset.id : null;
+  if (id === hoverId) return;
+  hoverId = id;
+  highlight(id);
+  const d = byId[id];
+  const text = d ? (d.short || d.summary) : id === TARGET ? DATA.target.summary : "";
+  if (!id || !text) { pop.style.display = "none"; return; }
+  pop.innerHTML = `<b>${esc(label(id))}</b>${esc(String(text).replace(/\*\*|`|\$/g, "").replace(/\[\[([\w-]+)(?:\|([^\]]+))?\]\]/g, (_, i, t) => t || (byId[i] ? byId[i].label : i)).slice(0, 240))}` +
+    (d ? `<div><span class="badge">${esc(ORIGIN[d.origin?.type] || "")}</span></div>` : "");
+  pop.style.display = "block";
+});
+graph.addEventListener("mousemove", e => {
+  mx = e.clientX; my = e.clientY;
+  if (raf) return;
+  raf = requestAnimationFrame(() => {
+    raf = 0;
+    pop.style.left = `${Math.min(mx + 14, innerWidth - 340)}px`;
+    pop.style.top = `${Math.min(my + 14, innerHeight - pop.offsetHeight - 10)}px`;
+  });
+});
+graph.addEventListener("mouseleave", () => { hoverId = null; pop.style.display = "none"; highlight(null); });
+graph.addEventListener("click", e => {
+  const n = e.target.closest(".node"); if (!n) return;
+  if (e.target.matches("input")) { e.target.checked ? learned.add(n.dataset.id) : learned.delete(n.dataset.id); syncLearned(); return; }
+  if (n.dataset.id !== START) location.href = href(n.dataset.id);
+});
+document.getElementById("copy").onclick = e => {
+  const ids = DATA.order || DATA.nodes.map(n => n.id);
+  const done = ids.filter(id => learned.has(id)).map(id => byId[id].label);
+  const todo = ids.filter(id => !learned.has(id)).map(id => byId[id].label);
+  RP.copy(`Roadmap ${DATA.paper.id}: đã học ${done.length}/${ids.length}.\nĐã học: ${done.join(", ") || "-"}\nChưa học: ${todo.join(", ") || "-"}`, e.target);
+};
+let rz = 0;
+window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(layout, 120); });
+// Coming back with the browser's back button can restore a cached page; re-read progress from storage.
+window.addEventListener("pageshow", () => { learned = new Set(RP.store.get(KEY, [])); syncLearned(); });
+
+layout(); syncLearned();
+// node heights depend on the web font; lay out again once it has loaded
+if (document.fonts) document.fonts.ready.then(layout);
+</script>
+</body>
+</html>

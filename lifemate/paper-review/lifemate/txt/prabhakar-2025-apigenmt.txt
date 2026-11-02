@@ -1,0 +1,1462 @@
+=== page 1 ===
+APIGen-MT: Agentic PIpeline for Multi-Turn Data
+Generation via Simulated Agent-Human Interplay
+Akshara Prabhakar∗Zuxin Liu∗Ming Zhu† Jianguo Zhang† Tulika Awalgaonkar†
+Shiyu Wang Zhiwei Liu Haolin Chen Thai Hoang Juan Carlos Niebles
+Shelby Heinecke‡ Weiran Yao‡ Huan Wang‡ Silvio Savarese‡ Caiming Xiong‡
+Salesforce AI Research
+Abstract
+Training effective AI agents for multi-turn interactions requires high-quality data
+that captures realistic human-agent dynamics, yet such data is scarce and expensive
+to collect manually. We introduce APIGen-MT, a two-phase framework that gen-
+erates verifiable and diverse multi-turn agent data. In the first phase, our agentic
+pipeline produces detailed task blueprints with ground-truth actions, leveraging a
+committee of LLM reviewers and iterative feedback loops. These blueprints are
+then transformed into complete interaction trajectories through simulated human-
+agent interplay. We train a family of models—the xLAM-2-fc-r series with sizes
+ranging from 1B to 70B parameters. Our models outperform frontier models such
+as GPT-4o and Claude 3.5 on τ-bench and BFCL benchmarks, with the smaller
+models surpassing their larger counterparts, particularly in multi-turn settings,
+while maintaining superior consistency across multiple trials. Comprehensive
+experiments demonstrate that our verified blueprint-to-details approach yields high-
+quality training data, enabling the development of more reliable, efficient, and
+capable agents. We open-source 5K synthetic data trajectories and the trained
+xLAM-2-fc-r models to advance research in AI agents.
+Model
+https://huggingface.co/Salesforce/xLAM-2
+Dataset
+https://huggingface.co/Salesforce/APIGen-MT-5k
+Website
+https://apigen-mt.github.io
+1
+Introduction
+The growth of Large Language Model (LLM) agents has been accelerating at an unprecedented
+rate, driven by advancements in AI capabilities and increasing demand across various industries
+[21, 1, 10, 5, 30, 54, 23, 7, 25]. Their role has evolved beyond simple conversational chatbots to AI
+agents capable of executing real-world tasks, such as managing financial transactions, scheduling
+appointments, and handling customer service requests. These applications demand not only linguistic
+fluency but also precise execution, reliability, and adherence to domain-specific policies. Realistic
+enterprise use cases involve having an assistant (also referred to as agent in this document) that is
+capable of fluently conversing with humans of different personalities, incrementally understanding
+their intent, extracting the background details needed, accurately invoke APIs, and operate over a
+complex business logic structure.
+∗Co-first Authors
+†Core Contributors
+‡Corresponding Authors
+Preprint. Under review.
+arXiv:2504.03601v4  [cs.CL]  19 Jul 2025
+
+=== page 2 ===
+0
+25
+50
+75
+100
+qwen 2.5 32b
+llama 3.1 70b
+claude 3.5 (new)
+gpt-4o
+xLAM-2-8b-fc-r
+xLAM-2-32b-fc-r
+xLAM-2-70b-fc-r
+62.8
+54.2
+56.5
+72.1
+72.8
+75.8
+78.2
+BFCL v3
+0
+25
+50
+75
+100
+24.4
+50.4
+71.5
+62.8
+58.2
+64.3
+67.1
+-Retail
+0
+25
+50
+75
+100
+25.0
+20.6
+48.8
+43.0
+35.2
+45.0
+45.2
+-Airline
+Figure 1: Comparative performance of larger xLAM-2-fc-r models (8B-70B, trained with APIGen-MT data)
+against state-of-the-art baselines on function-calling (BFCL v3 [45]) and agentic (τ-bench [49]) capabilities.
+Despite their potential, building robust and reliable AI agents presents significant challenges [49].
+Recent benchmarks reveal that even advanced LLMs struggle with multi-turn interactions, particularly
+when required to perform complex function calls, track long-term dependencies, or request missing
+information [50, 28, 46, 45, 19]. Although framework design and prompt engineering have shown
+promise, the underlying model capabilities remain the primary bottleneck, largely due to two funda-
+mental obstacles: (1) the scarcity of high-quality agent interaction data in public pretraining corpora,
+and (2) the prohibitive cost and time required to manually collect and label such data, especially for
+domain-specific applications requiring specialized knowledge.
+Several approaches have attempted to address these challenges. APIGen [26] introduced techniques
+for generating single-turn function calling data, while [41] explored methods for knowledge distilla-
+tion in agent training. However, these approaches primarily focus on single-turn interactions, failing
+to capture the complexity of real-world agent usage, where multiple turns are often required. Other
+efforts like [51, 50, 11], while incorporating multi-turn aspects, lack human-agent interplay–crucial
+for realistic data generation. The verification and synthesis of high-quality multi-turn trajectories con-
+taining both linguistic diversity and grounded actions remains largely unsolved, creating a significant
+barrier to advancing agent capabilities.
+To address these limitations, we introduce APIGen-MT, an agentic data synthesis pipeline for generat-
+ing high-quality multi-turn agent data. It operates in two main steps: first, a data agent generates a
+detailed and verified task "blueprint", and second, this blueprint guides the generation of realistic
+multi-turn interactions through simulated agent-human interplay (Subsection 4.2). The blueprint
+generation includes sampling relevant APIs, policies, domain data, and user personas to create
+grounded general tasks configurations, and using reverse task recombination (SubSubsection 4.1.3)
+to enhance complexity. These blueprints are validated through format/execution checks and an LLM
+committee review using a reflection-based mechanism [39]. Subsequently, the validated blueprint
+seeds a simulated interaction between a human LM and an agent (e.g., gpt-4o), producing a complete
+interaction trajectory with dialogue, actions, and environment feedback for training.
+The main contributions of our work are summarized as follows:
+• We propose APIGen-MT, an agentic data synthesis pipeline that leverages environment execution
+feedback and a review committee to ensure the high-quality of generated multi-turn agent data.
+• We develop a two-phase framework that first creates detailed task blueprints with verifiable
+groundtruth actions, then transforms these blueprints into realistic multi-turn conversational agent
+trajectories with tool-usage through simulated human-agent interplay.
+• We train a series of models across multiple architectures and scales (Llama 3.1/3.2 and Qwen
+2.5 at 1B to 70B parameters), demonstrating superior performance on two popular agentic
+benchmarks: τ-bench and BFCL, surpassing many frontier models including gpt-4o (Figure 1).
+• We open-source 5K high-quality synthetic data (APIGen-MT-5k) and trained models, i.e., the
+xLAM-2-fc-r series, to advance research in AI agent space.
+2
+
+=== page 3 ===
+2
+Related Work
+Tool-Use Agents. Tool-use capabilities enhance LLMs by enabling interaction with external tools,
+extending their reasoning and functionality [44, 33, 24]. Function-calling frameworks allow LLMs to
+parse queries, select tools, and interpret results, but often require predefined tools, limiting adaptability
+[26, 43]. Efforts were made to address this by creating reusable tools from scratch on the fly [9],
+built upon by ToolMaker [44] which leverages tools from existing code repositories. Others compose
+workflows or learn from demonstrations [33, 36]. Recently, several works have adopted specialized
+approaches for agent training—critique-informed planning [13], fine-tuning on selective steps [48],
+teasing apart reasoning from format following (Agent-FLAN) [12], and autonomously invoking tools
+without explicit post-training (ToRL) [22].
+Interactive Conversational Benchmarks. Evaluating LLM agents in multi-turn settings requires
+specialized benchmarks. MultiChallenge [40] and ToolDial [38] assess agents on context maintenance
+and tool-augmented dialogue. InterCode [47] and CRMArena [19] evaluate iterative problem-solving
+and customer management. ToolSandbox [28] provides a stateful, interactive benchmark for tool
+use. User simulations have become essential in these benchmarks, offering systematic, realistic
+interactions [49, 28, 31]. Our work complements these efforts by generating synthetic multi-turn
+conversations to train and evaluate agents in such realistic settings.
+Synthetic Data Generation. The scarcity of high-quality training data drives synthetic data genera-
+tion. Multi-agent frameworks like MAG-V [37], AgentInstruct [29], MATRIX [42], and IntellAgent
+[20] create realistic datasets by simulating agent interactions. Other approaches utilize instruction
+composition [18, 11], intermediate graphs [6] and multi-turn planning to produce complex dialogues
+[55]. Related to our effort in generating multi-turn training data, BUTTON [11] generates synthetic
+compositional instruction tuning data by combining 2-3 atomic tasks and conducting trajectory
+collection via a multi-agent setup. However, this involves construction of APIs based on the task
+generated and lacks systematic quality control and filtering during task composition limiting data
+verification. MAGNET [50] proposed a graph-based method to generate function signature paths
+which are iteratively transformed to a sequence of queries and function calls.
+While many of these prior approaches have been tested mainly on reasoning or single-turn interaction
+scenarios, our framework, APIGen-MT, advances this line of work, being applicable to any existing
+environment by generating high-quality multi-turn data for realistic agent-human interactions, focus-
+ing on reliable tool selection and parameter generation. By systematically preparing the context, we
+first generate tasks adhering to any domain constraints and the corresponding executable groundtruth
+function calls in an agentic fashion with iterative refinement via feedback loops. Further, the simulated
+agent-human interplay mechanism allows us to generate verifiable long interaction trajectories.
+3
+APIGen-MT Method for Synthesizing High-Quality Multi-Turn Data
+In this section, we present APIGen-MT, an agentic pipeline for generating multi-turn data through
+simulated agent-human interplay. We first formalize the multi-turn interaction problem and then
+describe our two-phase framework for generating high-quality, verifiable multi-turn data.
+3.1
+Multi-Turn Interaction Problem Formulation
+Multi-turn interactions between an AI assistant and a human user present unique challenges that go
+beyond single-turn exchanges. We formalize this interaction as a Partially Observable Markov Deci-
+sion Process (POMDP) defined by the tuple (U, S, A, O, T , R), where U represents the instruction
+space containing possible user intents; S denotes the state space of the environment and conversation
+history; A = {tool_call, response} is the action space available to the assistant; O = OE ∪OH is
+the observation space comprising observations from the environment (OE) and response from the
+human (OH); T : S × A →S × O is the transition function; and R is the reward function evaluating
+interaction success. The AI assistant must engage in a multi-turn conversation with the human user to
+incrementally understand their intent q ∈U and solve it through appropriate interactions with the
+environment while adhering to any domain rules. At turn t, the assistant predicts an action at ∈A
+based on the interaction history and understanding of q thus far. When at is a tool_call compliant
+with the rules, it triggers a state transition (st
+E, tool_call) →(st+1
+E , oE), where oE ∈OE is the tool
+output (typically in structured format like JSON). When at is a response to the human, it causes a
+3
+
+=== page 4 ===
+Phase 1: Task Configuration and Groundtruth Generation
+APIGen-MT
+Phase 2: Human-Agent-Environment Interaction Trajectory Collection
+Context
+LLM based Data 
+Generator
+Validated Tasks
+pass
+fail
+{intent, actions, outputs}
+Task Config
+Summarized feedback 
+and improvement plan
+Simulated 
+Human
+Test  
+Agent
+Can you return 
+my order?
+Sure, but I would 
+need your email to 
+authenticate you 
+and order info.
+My email is xxx 
+and the order is 
+about xxx....
+I have found your 
+info in our database, 
+your order id is xxx, 
+would like to 
+proceed?
+Agent Interacts in Simulation 
+Environments with Executable APIs
+get_user_info(...)
+User information ...
+get_order_info(...)
+Order information ...
+respond_to_user(I have found ....)
+...
+More interaction turns
+Task Intent
+Environment Config
+Groundtruth Actions  
+& Outputs
+ Interaction Traces 
+Compare
+APIs
+Rules Domain
+pass
+pass
+Format &  
+Execution Checker
+Review Committee 
+does majority vote
+Feedback Generator
+Aggregate Reviews, Reflect & Summarize
+Task Intent
+Groundtruth
+Successful Trajectory
+Figure 2: Overview of the APIGen-MT framework. Phase 1 generates task configurations and groundtruth
+actions through an agentic process with feedback loops. Phase 2 collects human-agent-environment interaction
+trajectories by simulating realistic conversations between a human user and a test agent in an executable
+environment.
+state transition (st
+H, response) →(st+1
+H , oH), where oH ∈OH is the human’s follow-up message.
+Importantly, the environment state st+1
+E
+remains latent to both the assistant and the human. The
+interaction completes when the human sends a terminating message or the maximum number of
+turns is reached. The reward R(∆SE, a) is calculated based on the cumulative state change in the
+environment ∆SE and the sequence of responses a = {ai | ai ∈response to human} provided by
+the assistant throughout the episode. The assistant’s objective is to maximize this reward.
+3.2
+APIGen-MT Framework Overview
+Generating high-quality multi-turn data that captures the complexities of agent-human interactions
+presents significant challenges. Directly synthesizing multi-turn conversations in one shot is difficult
+for two key reasons: (1) a single error or hallucination in any intermediate step can lead to complete
+failure, and (2) the content of each turn depends on previous function calls and their outputs, creating
+complex dependencies that are difficult to maintain consistently.
+To address these challenges, we introduce APIGen-MT, a two-phase framework for generating
+verifiable and diverse multi-turn data (Figure 2). Our approach extends the APIGen framework
+[26] by adding an agentic feedback loop and simulated human-agent interplay to generate realistic
+multi-turn conversations.
+The core insight of our approach is to separate the task generation process into two distinct phases:
+first creating a detailed "blueprint" of the task (Phase 1), and then using this blueprint to guide the
+generation of realistic multi-turn interactions that fill in the conversational details (Phase 2). This
+separation allows us to ensure both the correctness of the underlying task structure and the naturalness
+of the resulting conversations.
+3.2.1
+Phase 1: Task Configuration and Groundtruth Generation
+The initial phase of APIGen-MT focuses on systematically generating well-defined task configurations,
+each comprising a user instruction (q), a corresponding sequence of verifiable groundtruth actions
+(agt), and the expected final outputs (ogt). This phase establishes a solid, verifiable foundation for
+4
+
+=== page 5 ===
+each interaction scenario before the complexities of conversational dynamics are introduced. As
+depicted in Figure 2, this is achieved through an agentic workflow incorporating multi-stage validation
+and refinement loops. More specifically, it has the following steps:
+1. Context Preparation: Relevant information such as available APIs, domain-specific rules or
+policies, and reference data is assembled. This context grounds the subsequent generation step in
+the specific constraints and capabilities of the target environment.
+2. LLM-based Data Generator: An LLM utilizes the prepared context to propose initial task
+configurations. Each configuration consists of:
+• A detailed user instruction q describing the high-level intent.
+• A sequence of groundtruth actions agt required to fulfill the intent.
+• Expected final outputs ogt to be provided to the user.
+3. Format & Execution Checker: Proposed configurations undergo automated technical validation.
+This component performs multiple checks:
+• Verifies the structural correctness of generated actions (e.g., valid API call formats) and outputs.
+• Confirms the executability of each action in agt within a simulated target environment E
+(checking API names, arguments, types).
+4. Review Committee: Configurations passing rule-based checks proceed to semantic evaluation
+by a committee of multiple LLM reviewers. This committee assesses quality aspects like the
+coherence between q and agt, completeness, and overall task sensibility. We use majority voting
+to achieve a more stable assessment.
+5. Feedback Generation and Refinement: If a task fails at either the validation (Step 3) or review
+(Step 4) stage, a Feedback Generator aggregates failure reasons and reviews, reflects upon them,
+and produces a summarized improvement plan. This plan guides the Data Generator (Step 2) in
+refining the task proposal in a subsequent iteration. Successfully validated tasks exit this loop.
+This agentic design with feedback loops is crucial for generating high-quality tasks efficiently. By
+incorporating reflection and improvement based on validation results, the system can learn from
+failures and progressively generate better tasks.
+3.2.2
+Phase 2: Human-Agent-Environment Interaction Trajectory Collection
+Building upon the validated task configurations q, agt, ogt from Phase 1, the second phase generates
+realistic multi-turn interaction data by simulating dynamic conversations between an LLM-based
+human user and a test agent operating within an executable environment. Guided by the task
+instruction q and often a specific persona, the simulated human naturally reveals information or sub-
+goals incrementally, while the agent interprets the evolving context, interacts with the environment
+via API calls when needed, and responds coherently. Importantly, the simulated user is unaware of
+the underlying environment and available APIs mimicking a real-world user.
+The simulation produces complete interaction trajectories that capture dialogue turns, agent actions,
+and environment responses. Each trajectory is validated by comparing its outcome against the
+groundtruth actions (agt) and expected outputs (ogt) from Phase 1. Only those trajectories that
+verifiably achieve the task using both state-based and output-based checks are accepted into the
+dataset, ensuring that interactions are both dynamically plausible and grounded in a correct solution.
+This two-phase design offers several benefits. First, it provides verifiability by grounding interaction
+data in pre-validated task configurations. Second, it enhances realism by focusing the simulation
+on natural turn-by-turn dynamics without the simultaneous burden of task solution generation.
+Lastly, the modular approach isolates issues in task design from those in conversational modeling,
+facilitating debugging and scalability across diverse interaction patterns. In essence, by integrating
+agentic generation of verifiable task "blueprint" with realistic simulation of conversational dynamics,
+APIGen-MT produces high-quality, multi-turn interaction data that balances structural correctness
+with the naturalness required for training agent models.
+4
+A Case Study of APIGen-MT on τ-bench
+This section details the instantiation of the APIGen-MT framework (Subsection 3.2) with τ-bench
+[49]. Generating high-quality, multi-turn interaction data with nuanced human-agent dynamics
+5
+
+=== page 6 ===
+Examples
+sample
+sample
+sample
+sample
+Reflect & 
+Score
+add
+Validated Task
+Regenerate task  
+using feedback 
+avg_score > 
+threshold
+ State based reward
+ Output based reward
+@@ -60631,11 +60631,11 @@
+         {
+           "name": "Smart Watch",
+           "product_id": "6945232052",
+-          "item_id": "1706622510",
+-          "price": 328.67,
++          "item_id": "2860956907",
++          "price": 315.61,
+Aggregate 
+Reflections  
+& Summarize 
+ Final Review
+Prompt 
+Template
+Prompt 
+Template
+Task Validation
+Simulated Agent-Human 
+Interplay
+Task = {Intent,Actions,Outputs}
+Successful Trajectory
+Prompt to  
+reveal user 
+intent  in 
+turns
+1. Action Validation
+Persona 
+Examples
+API 
+graph
+Human 
+LM
+Test 
+Agent
+Policies
+Diff Patch
+Domain 
+data 
+& metadata
+{Task Data, Intent, Diff Patch}
+  Format Check
+  Execution Check
+       Policy Check
+2. Alignment Validation
+ Env
+Task Generation
+Figure 3: Realization of APIGen-MT framework for τ-bench. We first generate realistic task instances by
+random walk down the API graph and sampling. Next the tasks are validated following a multi-stage pipeline.
+Instances which fail are sent back to the Generator to be refined based on the validation feedback. Finally,
+trajectories are generated by a simulated human user that interacts with a test agent by supplying the query
+details in a turn-wise manner. Trajectories which pass state- and output- based evaluations are collected.
+presents challenges, as direct conversation simulation often leads to inconsistencies or task deviations.
+Therefore, our two-phase approach addresses this by first synthesizing detail task configurations that
+define the user’s high-level intent (q), groundtruth actions (agt), and the expected final outputs (ogt).
+By establishing this verifiable "blueprint" first (Phase 1), we can then more reliably simulate the
+fine-grained, turn-by-turn interaction dynamics between a human and an agent within the executable
+environment (Phase 2), ensuring the collected trajectories are both realistic and grounded in a
+verifiable solution path. τ-bench, with its realistic domains, executable APIs, and specific policies,
+provides an ideal testbed for this methodology. Figure 3 illustrates this specific implementation.
+4.1
+Phase 1 Implementation: Task Configuration Generation and Validation
+4.1.1
+API Dependency Graph and Context Samplers
+Generating realistic tasks for τ-bench requires navigating its specific APIs, policies, and data struc-
+tures. We implemented the following techniques for task generation and validation.
+API Graph Modeling.
+We model the available APIs in each τ-bench domain as a directed graph,
+where nodes represent APIs and edges represent dependencies between them. An edge exists from
+API A to API B if B’s input arguments can depend on A’s output and the co-occurrence of this
+tool-call pair is permitted under domain policies. This graph-based approach enables us to generate
+realistic task sequences by performing random walks through the API dependency graph.
+Specialized Context Samplers.
+To ensure task diversity, realism, and grounding, we utilize several
+domain-specific samplers that provide context to the LLM-based task generator.
+• API Sampler: We distinguish between state-exploring (‘read’) APIs and state-changing (‘write’)
+APIs which can modify the environment states. The generator focuses on sampling the necessary
+’write’ APIs to form the core of agt, allowing flexibility in how ‘read’ APIs might be used during
+the subsequent interaction phase. This approach encourages exploration while ensuring that
+specific state-changing actions are included in the groundtruth.
+• Policy Sampler: For each τ-bench domain, we extract and sample from the domain-specific
+policies and rules. These policies are incorporated into the task generation process to ensure
+compliance of real-world use cases. Task complexity is influenced by the number of ’write’ calls
+and the associated policy constraints.
+• Domain Data Sampler: To ground tasks in realistic domain data without exceeding context
+limits, we sample domain-specific data with additional metadata (e.g., cost, time, attributes). This
+metadata enhances coverage and enables more creative and diverse task scenarios.
+• Persona Sampler: We incorporate user persona descriptions from PersonaHub [17] to inform the
+user intent q and inject realistic human qualities and situational context, enhancing diversity for
+subsequent Phase 2 human-agent interaction simulation.
+• Example Sampler: We provide few-shot examples of well-formed tasks relevant to the sampled
+APIs, guiding the generator on structure and format.
+6
+
+=== page 7 ===
+For each task generation iteration, we randomly vary the sampling frequency for each sampler to
+enhance diversity and prevent repetitive scenarios. The sampled information is compiled into
+a prompt instructing the LLM generator to produce a <thought> (its reasoning process), the
+user <instruction> (q), the corresponding groundtruth <actions> (agt), and the expected fi-
+nal <outputs> (ogt).
+4.1.2
+Multi-Stage Validation for τ-bench
+We implement a rigorous three-stage validation process for the τ-bench environment:
+Stage 1: Action Validation.
+• Format Check:
+Verifies the presence and basic structure of required task components
+(<thought>, <instruction>, <actions>, <outputs>) and ensures all tool calls in
+<actions> are valid JSON and outputs in <outputs> are strings.
+• Execution Check: Simulates each action in agt within the τ-bench environment, validating API
+names, argument names, and data types. The cumulative effect on the environment state (∆SE)
+is captured as a diff_patch, similar to git diff.
+• Policy Compliance Check: Leverages the executable nature of τ-bench by translating domain
+policies into Python unit tests. These tests run against the simulated execution trace of agt to
+detect violations, especially those arising from interactions between multiple actions (e.g., action
+B is invalid given the state change caused by prior action A). Failures yield detailed feedback on
+the specific policy violation.
+Stage 2: Alignment Validation.
+Tasks successfully passing Stage 1’s action validation are then
+assessed for semantic alignment. Specifically, we evaluate whether the groundtruth actions (agt), as
+reflected by their environmental effects summarized in the diff_patch, accurately and comprehen-
+sively fulfill the user’s intent expressed in the instruction (q). To mitigate the potential biases and
+inconsistencies of a single evaluator, we employ a committee of diverse LLM judges [54, 8]. These
+judges review each task based on a systematic rubric with metrics such as Correctness, Completeness,
+Satisfaction, and Creativity (refer Figure 9 in Appendix B for details).
+Each judge provides scores and qualitative feedback. We utilize a majority voting strategy across
+the committee’s judgments to determine the final assessment for each metric and the overall task
+quality. This approach yields more stable and reliable evaluation results compared to single-judge
+assessments.
+Stage 3: Final Semantic Review & Refinement.
+Based on the aggregated scores from the
+committee (determined via majority voting), tasks achieving an average score above a predefined
+threshold are accepted and added to the pool of validated task configurations. Tasks that fail this
+review trigger the feedback loop mechanism. Consolidated feedback, summarizing the points raised
+by the committee majority, is sent back to the LLM task generator. This initiates a reflection process
+[39], guiding the generator to revise the task in the subsequent iteration to address the identified
+shortcomings.
+4.1.3
+Reverse Task Recombination for Complex Task Construction
+While the iterative refinement process improves task quality and efficiency, directly generating
+complex, long-horizon tasks involving multiple steps remains challenging. Validation failures can
+occur due to subtle policy conflicts or difficulties in ensuring perfect alignment across many steps.
+To overcome this and systematically construct more complicated scenarios, we implement Reverse
+Task Recombination, a technique that leverages the principle of compositionality [11, 18], similar
+to modular design in software engineering. The core idea is to build complex tasks from simpler,
+independently validated "building blocks":
+1. Select Validated Tasks: Identify multiple simpler tasks (T1, T2, ...) that have successfully passed
+all validation stages (Stages 1-3) and are associated with the same user persona.
+2. Concatenate Components: Combine their respective groundtruth actions (acombined = agt,1 ◦
+agt,2 ◦...) and expected outputs (ocombined = ogt,1 ⊕ogt,2 ⊕..., where ◦denotes action sequence
+concatenation and ⊕denotes output aggregation).
+7
+
+=== page 8 ===
+3. Re-Check Policy Compliance: Rerun the Policy Check on acombined to ensure that the cumula-
+tive action sequence remains logically sound and adheres to the domain rules as combinations
+could cause conflicting actions to appear together, for e.g., returning and canceling the same
+order.
+4. Synthesize Combined Instruction: Instruct the LLM generator to create a new, coherent,
+overarching user instruction (qcombined) that logically integrates the goals and steps represented
+by acombined and ocombined. This new instruction should frame the combined actions as a single,
+more complex user request.
+5. Re-Validate
+Semantics:
+Submit
+the
+newly
+formed
+complex
+task
+Tcombined
+=
+{qcombined, acombined, ocombined} for validation starting from Stage 2 (Alignment Validation).
+Stage 1 (Action Validation) can be safely skipped for acombined because each constituent action
+sequence (agt,1, agt,2, ...) has already been individually checked for format and execution within
+its original context, and policy compliance in the current context. Stage 3 (Final Semantic Review)
+proceeds based on the outcome of Stage 2 for the combined task.
+This method allows for the scalable generation of complex, multi-step tasks with greater reliability,
+as it builds upon verified components while focusing the validation effort on the semantic coherence
+and alignment of the combined whole.
+4.2
+Phase 2: Simulated Human-Agent Interplay and Trajectory Collection
+Building on the verified tasks from Phase 1—which include a detailed user intent q, groundtruth
+actions agt, and expected outputs ogt—we simulate multi-turn interaction trajectories between an
+agent (A) and a human user (H) modeled by an LLM. Guided by the instruction q and an associated
+persona, the simulated human incrementally reveals task details to mimic realistic interactions. The
+agent, instantiated as gpt-4o with its function-calling mode, interprets the evolving intent and
+executes the necessary actions to complete the task.
+Trajectory Collection. We employ rejection sampling to ensure that only trajectories achieving the
+task goal (r = 1) are retained. Success is determined by comparing the final environment state to agt
+and the agent’s final responses to ogt. For enhanced data coverage, each task is attempted up to three
+times, and the union of all unique successful trajectories is compiled into an offline dataset suitable
+for downstream applications such as behavioral cloning.
+Stabilizing Simulated Human. A critical challenge in this phase is maintaining the stability and
+fidelity of the simulated human. Over multiple conversational turns, the human LLM may drift from
+the original instruction or be unduly influenced by the agent’s responses [32], introducing variability
+that hinders reliable evaluation [49]. To address this, we adopt a Best-of-N (N=4) sampling strategy
+in combination with a self-critique mechanism for the human LLM’s responses (see Figure 12 in
+Appendix B for details), allowing it to adhere to the task instruction more accurately and not be
+mislead by the test agent responses. Its effectiveness was validated on the τ-bench test set, where
+improved consistency in agent performance evaluation across multiple trials was observed (Table 3).
+4.3
+Data Collection & Statistics
+Data Collection Procedure.
+We source APIs implemented as Python functions from τ-bench.
+Among these, we have 15 ‘read’ and 13 ‘write’ APIs across both domains. τ-bench is accompanied
+with detailed policies and domain rules in two settings - Retail and Airline which we use as guideline
+policies. We utilize gpt-4o and DeepSeek V3 models in the task generation, validation and agent-
+human interplay stages to collect training data. The prompts used in every stage are provided in
+Appendix B. We set the maximum number of reflection-based feedback turns to 3 for retail and 5 for
+airline respectively.
+Statistics.
+A summary of the data collection is shown in Figure 4. Figure 5 shows that we can
+efficiently collect long trajectories requiring a strong model like gpt-4o to take an average 12 turns
+to complete the task using APIGen-MT. Our agentic pipeline involving review committee and iterative
+refinement via reflection provides a 2.5x boost to the task collection success rate to attain 70%.
+Our implementation demonstrates that the APIGen-MT framework can successfully generate high-
+quality multi-turn data for complex domains with strict policy constraints. The two-phase approach
+8
+
+=== page 9 ===
+Metric
+Value
+Task Config. S.R. (Phase 1)
+70%
+Task Config. S.R. w/o Agentic Feedback
+28%
+Trajectory Sim. S.R. (Phase 2)
+67%
+Min. Turns per Trajectory
+1
+Max. Turns per Trajectory
+29
+Avg. Tool Calls per Trajectory
+7
+Avg. User Turns per Trajectory
+6
+Figure 4: Statistics for the dataset generated using
+APIGen-MT. Success rates (S.R.) are reported for the
+task configuration (w. and w/o agentic feedback in
+Phase 1) and trajectory simulation (Phase 2) stages.
+0
+10
+20
+30
+Number of Turns
+0.00
+0.05
+0.10
+0.15
+0.20
+Density
+Assistant Turns
+User Turns
+Figure 5: Density distribution of assistant and
+user turns in collected trajectories.
+with agentic feedback loops and simulated human-agent interplay proves effective in creating diverse,
+realistic, and verifiable datasets for training and evaluating conversational agents.
+5
+Experiments
+5.1
+Experimental Setup
+Training Details. We perform filtered Behavioral Cloning (BC) using the collected trajectories with
+Llama 3.1/3.2 Instruct models [16] and Qwen 2.5 Instruct models [34]. The collected trajectories
+are split at every assistant response and we train to predict only the assistant response tokens by
+masking the prompt and other messages. To enhance the dataset diversity, we also jointly train our
+xLAM-2-fc-r models with function-calling data from [26] and other domains of agentic data from
+[52, 53]. We utilize the LLama-Factory library [56] and perform full-finetuning using DeepSpeed
+ZeRO [35] stage 3, Flash Attention 2 [15] in bfloat16 precision with AdamW optimizer [27] and train
+for at most 3 epochs on a NVIDIA H200 node.
+Benchmarks. We evaluate on two challenging benchmarks designed specifically for assessing agent
+capabilities – (1) BFCL v3 [45], a leading benchmark for tool-use evaluation, specifically designed
+to assess LLMs’ function calling capabilities and (2) τ-bench [49], a comprehensive benchmark for
+evaluating AI agents in realistic scenarios. More details are in Appendix A. Both are particularly
+well-suited for evaluating the effectiveness of our APIGen-MT approach, as they focus on multi-turn
+interactions and tool use capabilities, which are central to our data generation methodology.
+5.2
+Experiment Results
+We compare the performance of our trained models (xLAM-2-fc-r) against state-of-the-art
+proprietary models such as gpt models (o1, gpt-4o); claude models (claude-3.5-haiku,
+claude-3.5-sonnet, claude-3.5-sonnet (new), and claude-3.7-sonnet), and open-source
+LLMs including DeepSeek v3, and the baselines Llama 70B and Qwen 32B.
+BFCL v3 Results.
+On the BFCL v3 benchmark, our models demonstrate exceptional performance.
+As shown in Table 1, xLAM-2-70b-fc-r and xLAM-2-32b-fc-r achieve the top 2 positions on the
+leaderboard with overall accuracies of 78.19% and 75.83% respectively, surpassing all proprietary
+and open-source models. The most striking advantage appears in multi-turn scenarios, where
+our models excel across all parameter scales. xLAM-2-70b-fc-r achieves 75.12% multi-turn
+accuracy, while our smaller models show remarkable capabilities with xLAM-2-8b-fc-r at
+69.25%, xLAM-2-3b-fc-r at 56.00%, and even xLAM-2-1b-fc-r at 43.12% - all substantially
+outperforming o1 (36%) and gpt-4o in function-calling mode (41%). Additionally, our models
+demonstrate strong hallucination detection, with xLAM-2-3b-fc-r achieving 94.44% on relevance
+detection, matching the best score in this category.
+9
+
+=== page 10 ===
+Table 1: Performance of different models on BFCL leaderboard (as of date 04/03/2025). The rank is based on the
+overall accuracy, which is a weighted average of different evaluation categories. “FC" stands for function-calling
+mode in contrast to using a customized “prompt" to extract the function calls. See the benchmark [45] for details.
+Single-Turn
+Multi-Turn
+Hallucination
+Rank
+Overall Acc
+Model
+Non-live (AST)
+Non-live (Exec)
+Live (AST)
+Overall Acc
+Relevance
+Irrelevance
+1
+78.19
+xLAM-2-70b-fc-r (FC)
+88.48
+85.98
+72.63
+75.12
+66.67
+78.74
+2
+75.83
+xLAM-2-32b-fc-r (FC)
+89.50
+86.48
+73.79
+66.38
+83.33
+76.25
+3
+74.31
+watt-tool-70b (FC)
+84.06
+89.39
+77.74
+58.75
+94.44
+76.32
+4
+72.83
+xLAM-2-8b-fc-r (FC)
+84.35
+85.59
+66.73
+69.25
+83.33
+64.11
+5
+72.08
+GPT-4o-2024-11-20 (Prompt)
+88.1
+89.38
+79.83
+47.62
+83.33
+83.76
+6
+69.94
+GPT-4.5-Preview-02-27 (FC)
+86.12
+83.98
+79.34
+45.25
+66.67
+83.64
+7
+69.58
+GPT-4o-2024-11-20 (FC)
+87.42
+89.2
+79.65
+41
+83.33
+83.15
+8
+68.39
+ToolACE-2-8B (FC)
+87.58
+87.11
+80.05
+36.88
+72.22
+90.11
+9
+67.98
+watt-tool-8B (FC)
+86.56
+89.34
+76.5
+39.12
+83.33
+83.15
+10
+67.88
+GPT-4-2024-04-09 (FC)
+84.73
+85.21
+80.5
+38.12
+72.22
+83.81
+11
+67.87
+o1-2024-12-17 (Prompt)
+85.67
+87.45
+80.63
+36
+72.22
+87.78
+12
+67.72
+BitAgent-8B
+86.92
+89.52
+76.14
+38.5
+83.33
+82.38
+13
+65.12
+o3-mini-25-01-31 (Prompt)
+86.15
+89.46
+79.08
+28.75
+72.22
+82.96
+14
+65.11
+xLAM-2-3b-fc-r (FC)
+82.94
+81.88
+58.69
+56.00
+94.44
+57.94
+15
+64.1
+CoALM-405B
+90.58
+89.07
+74.5
+28.75
+100
+71.79
+16
+64.1
+GPT-4o-mini-24-07-18 (FC)
+85.21
+83.57
+74.41
+34.12
+83.33
+74.75
+...
+...
+...
+...
+34
+58.93
+Gemini-2-Flash-Thinking
+87.4
+87.07
+75.97
+14.5
+77.78
+72.75
+35
+58.9
+Qwen2.5-14B-Instruct (FC)
+85.42
+84.86
+76.68
+15.88
+55.56
+77.69
+36
+58.90
+xLAM-2-1b-fc-r (FC)
+76.23
+74.86
+59.88
+43.12
+88.89
+56.87
+37
+58.55
+DeepSeek-V3 (FC)
+89.17
+92.32
+68.41
+18.62
+88.89
+59.36
+38
+58.45
+mistral-large-2407 (FC)
+86.81
+84.38
+69.88
+23.75
+72.22
+52.85
+39
+58.42
+ToolACE-8B (FC)
+87.54
+89.21
+78.59
+7.75
+83.33
+87.88
+τ-bench Results.
+Table 2 presents results under the default naive user setting on τ-bench. Our
+xLAM-2-70b-fc-r model achieves a 56.2% success rate, outperforming Llama 3.1 70B Instruct
+(38.2%), DeepSeek v3 (40.6%), and even proprietary models like GPT-4o (52.9%), while ap-
+proaching more recent models like Claude 3.5 Sonnet (60.1%). Notably, our smaller variants
+like xLAM-2-32b-fc-r (54.6%) and xLAM-2-8b-fc-r (46.7%) surpass larger baselines, demon-
+strating that our synthetic data approach enables efficient knowledge transfer and strong performance
+with fewer parameters.
+Table 2: Success Rate (pass@1) of various open-source and proprietary models on the Retail and Airline
+settings of τ-bench (averaged across at least 5 trials). The xLAM-2-fc-r models are trained on the data
+generated using APIGen-MT. Overall indicates the average score across both domains. 1 indicates results from
+[14]; 2 indicates results from [2]; 3 indicate results from [3]; 4 indicates from [4]. Note. We evaluate only with
+the benchmark’s think tool and no prompt optimizations.
+Model
+τ-Retail
+τ-Airline
+Overall
+Open-Source Models
+Qwen 2.5 32B Instruct
+24.4
+25.0
+24.7
+Llama 3.1 70B Instruct
+50.4
+26.0
+38.2
+DeepSeek v31
+58.3
+22.8
+40.6
+xLAM-2-70b-fc-r
+67.1
+45.2
+56.2
+xLAM-2-32b-fc-r
+64.3
+45.0
+54.6
+xLAM-2-8b-fc-r
+58.2
+35.2
+46.7
+xLAM-2-3b-fc-r
+44.4
+32.0
+38.2
+xLAM-2-1b-fc-r
+22.5
+21.0
+21.8
+Proprietary Models
+Gemini 1.5 pro1
+54.9
+25.2
+40.1
+gpt-4o-2024-11-20
+62.8
+43.0
+52.9
+o13
+73.5
+54.2
+63.9
+Claude 3.5 Haiku2
+51.0
+22.8
+36.9
+Calude 3.5 Sonnet2
+62.6
+36.0
+49.3
+Claude 3.5 Sonnet (new)3
+71.5
+48.8
+60.1
+Claude 3.7 Sonnet4
+78.3
+41.2
+59.8
+Claude 3.7 Sonnet + optimized prompt 4
+81.2
+58.4
+69.8
+10
+
+=== page 11 ===
+These results across both benchmarks demonstrate that our APIGen-MT approach for generating
+synthetic multi-turn data through simulated agent-human interplay is highly effective. Models trained
+on this data consistently outperform open-source baselines and on par with proprietary models, with
+particularly strong performance in multi-turn scenarios. Importantly, our approach enables smaller
+models to achieve competitive or superior performance compared to much larger models, highlighting
+the efficiency and effectiveness of our data generation methodology.
+5.3
+Consistency & Stability Experiments
+We plot the passˆk curves [49] in Figure 6 on τ-bench in the default naive user LM setting. passˆk
+is defined as the chance of all k i.i.d. task trials being successful, averaged across all tasks. As k
+increases, we see less drop in success rate (SR) for our models. Notably on the more complex airline
+domain, xLAM-2-70b-fc-r has higher passˆ5 score than Claude, despite having a slightly lower
+passˆ1 suggesting higher reliability and consistency across multiple trials. This is a critical property
+for deployment in real-world applications, where consistent performance is essential.
+1
+2
+3
+4
+5
+k
+0.40
+0.50
+0.60
+0.70
+pass^k
+1
+2
+3
+4
+5
+k
+0.20
+0.30
+0.40
+0.50
+pass^k
+gpt-4o
+xlam-2-70b-fc-r
+xlam-2-32b-fc-r
+claude 3.5 sonnet (new)
+Figure 6: Passˆk curves measuring the probability that all 5 independent trials succeed for a given task, averaged
+across all tasks for τ-retail (left) and τ-airline (right) domains. Higher value indicates consistency of the models.
+Next, we adopt the BoN user LM setting (introduced in Subsection 4.2) to assess its effectiveness in
+producing more stable results across trials. Although this enhancement is applied to the user LM,
+Table 3 highlights the improved success rate and reduced variance in models utilizing the BoN user
+simulation. This suggests that enhancing the user simulation strategy with a simple self-critiquing
+mechanism can not only increase stability but also improve agent performance.
+Table 3: The Success Rate (SR) measured across 5 trials on the Retail domain of τ-bench using gpt-4o and
+xLAM-2-70b-fc-r as the test assistants. The average success rate is higher with lower variance using BoN
+based user simulation, indicative of a more stable evaluation.
+Model (User LM setting)
+t1
+t2
+t3
+t4
+t5
+SR Average
+SR Variance
+gpt-4o (Naive)
+61.7
+57.4
+65.2
+65.2
+64.4
+62.8
+11.1
+gpt-4o (BoN)
+65.2
+69.6
+67.0
+66.1
+67.0
+67.0
+2.6
+xLAM-2-70b-fc-r (Naive)
+69.6
+65.2
+62.6
+68.7
+69.6
+67.1
+9.7
+xLAM-2-70b-fc-r (BoN)
+66.9
+71.3
+68.7
+66.9
+70.4
+68.8
+4.0
+5.4
+In-Depth Analysis of Model Behavior
+short
+<13
+medium
+13-18
+long
+>18
+Task Category
+0
+5
+10
+15
+20
+25
+30
+35
+40
+Task Success %
+User Turns
+Success
+0
+2
+4
+6
+8
+10
+12
+14
+Number of User Interactions
+xlam-2-70b-fc-r
+claude 3.5 sonnet (new)
+gpt-4o
+Figure 7: Performance/efficiency comparisons
+of xLAM-2-70b-fc-r with frontier models on τ-
+bench.
+To better understand the behavior of our trained mod-
+els, we perform an in-depth investigation of the tasks
+solved by xLAM-2-70b-fc-r and a state-of-the-art
+model Claude 3.5 Sonnet (new) on τ-bench. We cat-
+egorize tasks into ‘short’, ‘medium’ and ‘long’ based
+on the number of turns required by Claude 3.5 to
+solve each task across a union of 8 trials. This cat-
+egorization is derived by calculating the 33rd and
+66th percentiles of the number of turns. From Fig-
+ure 7 we observe that particularly on the ‘long’ task
+category, the success rate for xLAM-2-70b-fc-r is
+11
+
+=== page 12 ===
+much higher than gpt-4o but lags behind Claude. Further, we assess the efficiency of the agent by
+measuring the number of interactions needed with the simulated user for the agent to fully compre-
+hend the intent and successfully complete the task. The plot reveals that xLAM-2-70b-fc-r is at
+par with gpt-4o but requires more interactions compared to Claude, which can be attributed to its
+method of retrieving user details in stages, necessitating more turns. These observations suggest
+potential areas for improvement in future iterations.
+6
+Discussion
+Conclusion. We introduced APIGen-MT, a two-phase framework for generating high-quality multi-
+turn agent data through simulated human-agent interactions. By decoupling the creation of detailed
+task blueprints from the simulation of conversational trajectories, our approach ensures both structural
+correctness and natural dialogue dynamics. Experiments on τ-bench and BFCL v3 demonstrate
+that models trained on our synthetic data outperform existing baselines, with even smaller models
+showing competitive performance in multi-turn scenarios. Moreover, our stabilization techniques
+yield more consistent and reliable agent behavior. By open-sourcing our synthetic data and trained
+models, we aim to foster further advances in AI agent development.
+Limitations and future directions. Despite its advantages, APIGen-MT has limitations that present
+opportunities for future research. First, while our Best-of-N sampling and self-critique mechanisms
+reduce human user simulation variance, some stochasticity in human behavior remains; more deter-
+ministic simulation methods or refined filtering metrics could further stabilize the process. Second,
+our current approach discards failed trajectories in the second phase, yet these cases may offer
+valuable insights; future work could leverage such failures as additional contrastive signal during
+model training. Third, the multi-stage validation process, though effective, incurs computational over-
+head; developing more efficient validation or adaptive sampling strategies could improve scalability.
+Finally, extending our approach to additional domains and incorporating self-improvement through
+reinforcement learning are promising directions for future work.
+References
+[1] S. Agashe, J. Han, S. Gan, J. Yang, A. Li, and X. E. Wang. Agent s: An open agentic framework
+that uses computers like a human. arXiv preprint arXiv:2410.08164, 2024.
+[2] Anthropic.
+Claude 3.5 sonnet, 2024.
+URL https://www.anthropic.com/news/
+3-5-models-and-computer-use.
+[3] Anthropic.
+Claude 3.7 sonnet, 2025.
+URL https://www.anthropic.com/news/
+claude-3-7-sonnet.
+[4] Anthropic. Claude think tool, 2025. URL https://www.anthropic.com/engineering/
+claude-think-tool.
+[5] A. Antoniades, A. Örwall, K. Zhang, Y. Xie, A. Goyal, and W. Wang. Swe-search: Enhanc-
+ing software agents with monte carlo tree search and iterative refinement. arXiv preprint
+arXiv:2410.20285, 2024.
+[6] S. Arcadinho, D. Aparício, and M. Almeida. Automated test generation to evaluate tool-
+augmented llms as conversational ai agents. arXiv preprint arXiv:2409.15934, 2024.
+[7] D. Bahdanau, N. Gontier, G. Huang, E. Kamalloo, R. Pardinas, A. Piché, T. Scholak, O. Shli-
+azhko, J. P. Tremblay, K. Ghanem, et al. Tapeagents: a holistic framework for agent development
+and optimization. arXiv preprint arXiv:2412.08445, 2024.
+[8] Z. Bi, K. Han, C. Liu, Y. Tang, and Y. Wang. Forest-of-thought: Scaling test-time compute for
+enhancing llm reasoning. arXiv preprint arXiv:2412.09078, 2024.
+[9] T. Cai, X. Wang, T. Ma, X. Chen, and D. Zhou. Large language models as tool makers. arXiv
+preprint arXiv:2305.17126, 2023.
+12
+
+=== page 13 ===
+[10] CAMEL-AI.org. Owl: Optimized workforce learning for general multi-agent assistance in
+real-world task automation. https://github.com/camel-ai/owl, 2025. Accessed: 2025-
+03-07.
+[11] M. Chen, sunhaoze, T. Li, F. Yang, H. Liang, KeerLu, B. CUI, W. Zhang, Z. Zhou, and
+weipeng chen. Facilitating multi-turn function calling for LLMs via compositional instruction
+tuning. In The Thirteenth International Conference on Learning Representations, 2025. URL
+https://openreview.net/forum?id=owP2mymrTD.
+[12] Z. Chen, K. Liu, Q. Wang, W. Zhang, J. Liu, D. Lin, K. Chen, and F. Zhao. Agent-flan:
+Designing data and methods of effective agent tuning for large language models. arXiv preprint
+arXiv:2403.12881, 2024.
+[13] Z. Chen, M. Li, Y. Huang, Y. Du, M. Fang, and T. Zhou. Atlas: Agent tuning via learning
+critical steps. arXiv preprint arXiv:2503.02197, 2025.
+[14] S. Cognition. Apt-1 blog, 2025. URL https://www.scaledcognition.com/blog/apt-1.
+[15] T. Dao. Flashattention-2: Faster attention with better parallelism and work partitioning, 2023.
+URL https://arxiv.org/abs/2307.08691.
+[16] A. Dubey, A. Jauhri, A. Pandey, A. Kadian, A. Al-Dahle, A. Letman, A. Mathur, A. Schelten,
+A. Yang, A. Fan, et al. The llama 3 herd of models. arXiv preprint arXiv:2407.21783, 2024.
+[17] T. Ge, X. Chan, X. Wang, D. Yu, H. Mi, and D. Yu. Scaling synthetic data creation with
+1,000,000,000 personas, 2024. URL https://arxiv.org/abs/2406.20094.
+[18] S. A. Hayati, T. Jung, T. Bodding-Long, S. Kar, A. Sethy, J.-K. Kim, and D. Kang. Chain-
+of-instructions: Compositional instruction tuning on large language models. arXiv preprint
+arXiv:2402.11532, 2024.
+[19] K.-H. Huang, A. Prabhakar, S. Dhawan, Y. Mao, H. Wang, S. Savarese, C. Xiong, P. Laban, and
+C.-S. Wu. Crmarena: Understanding the capacity of llm agents to perform professional crm
+tasks in realistic environments, 2025. URL https://arxiv.org/abs/2411.02305.
+[20] E. Levi and I. Kadar. Intellagent: A multi-agent framework for evaluating conversational ai
+systems. arXiv preprint arXiv:2501.11067, 2025.
+[21] G. Li, H. A. A. K. Hammoud, H. Itani, D. Khizbullin, and B. Ghanem. Camel: Communicative
+agents for "mind" exploration of large language model society. In Thirty-seventh Conference on
+Neural Information Processing Systems, 2023.
+[22] X. Li, H. Zou, and P. Liu. Torl: Scaling tool-integrated rl, 2025. URL https://arxiv.org/
+abs/2503.23383.
+[23] Y. Li, Y. Li, X. Wang, Y. Jiang, Z. Zhang, X. Zheng, H. Wang, H.-T. Zheng, P. Xie, P. S. Yu,
+et al. Benchmarking multimodal retrieval augmented generation with dynamic vqa dataset and
+self-adaptive planning agent. arXiv preprint arXiv:2411.02937, 2024.
+[24] W. Liu, X. Huang, X. Zeng, X. Hao, S. Yu, D. Li, S. Wang, W. Gan, Z. Liu, Y. Yu, et al. Toolace:
+Winning the points of llm function calling. arXiv preprint arXiv:2409.00920, 2024.
+[25] Z. Liu, J. Zhang, K. Asadi, Y. Liu, D. Zhao, S. Sabach, and R. Fakoor. Tail: Task-specific
+adapters for imitation learning with large pretrained models. arXiv preprint arXiv:2310.05905,
+2023.
+[26] Z. Liu, T. Hoang, J. Zhang, M. Zhu, T. Lan, J. Tan, W. Yao, Z. Liu, Y. Feng, R. RN, et al.
+Apigen: Automated pipeline for generating verifiable and diverse function-calling datasets.
+Advances in Neural Information Processing Systems, 37:54463–54482, 2024.
+[27] I. Loshchilov and F. Hutter.
+Decoupled weight decay regularization.
+arXiv preprint
+arXiv:1711.05101, 2017.
+13
+
+=== page 14 ===
+[28] J. Lu, T. Holleis, Y. Zhang, B. Aumayer, F. Nan, F. Bai, S. Ma, S. Ma, M. Li, G. Yin, et al.
+Toolsandbox: A stateful, conversational, interactive evaluation benchmark for llm tool use
+capabilities. arXiv preprint arXiv:2408.04682, 2024.
+[29] A. Mitra, S. Patel, T. Chakrabarty, and C. Baral. Agentinstruct: An agentic framework for
+generating high-quality synthetic instruction data. arXiv preprint arXiv:2402.12360, 2024.
+[30] J. Pan, X. Wang, G. Neubig, N. Jaitly, H. Ji, A. Suhr, and Y. Zhang. Training software
+engineering agents and verifiers with swe-gym. arXiv preprint arXiv:2412.21139, 2024.
+[31] J. Pan, R. Shar, J. Pfau, A. Talwalkar, H. He, and V. Chen. When benchmarks talk: Re-evaluating
+code llms with interactive feedback, 2025. URL https://arxiv.org/abs/2502.18413.
+[32] J. S. Park, J. O’Brien, C. J. Cai, M. R. Morris, P. Liang, and M. S. Bernstein. Generative agents:
+Interactive simulacra of human behavior. In Proceedings of the 36th annual acm symposium on
+user interface software and technology, pages 1–22, 2023.
+[33] Y. Qin, S. Hu, Y. Lin, W. Chen, N. Ding, G. Cui, Z. Zeng, X. Zhou, Y. Huang, C. Xiao, et al.
+Tool learning with foundation models. ACM Computing Surveys, 57(4):1–40, 2024.
+[34] Qwen, :, A. Yang, B. Yang, B. Zhang, B. Hui, B. Zheng, B. Yu, C. Li, D. Liu, F. Huang, H. Wei,
+H. Lin, J. Yang, J. Tu, J. Zhang, J. Yang, J. Yang, J. Zhou, J. Lin, K. Dang, K. Lu, K. Bao,
+K. Yang, L. Yu, M. Li, M. Xue, P. Zhang, Q. Zhu, R. Men, R. Lin, T. Li, T. Tang, T. Xia, X. Ren,
+X. Ren, Y. Fan, Y. Su, Y. Zhang, Y. Wan, Y. Liu, Z. Cui, Z. Zhang, and Z. Qiu. Qwen2.5
+technical report, 2025. URL https://arxiv.org/abs/2412.15115.
+[35] J. Rasley, S. Rajbhandari, O. Ruwase, and Y. He. Deepspeed: System optimizations enable
+training deep learning models with over 100 billion parameters. In Proceedings of the 26th
+ACM SIGKDD International Conference on Knowledge Discovery & Data Mining, KDD
+’20, page 3505–3506, New York, NY, USA, 2020. Association for Computing Machinery.
+ISBN 9781450379984. doi: 10.1145/3394486.3406703. URL https://doi.org/10.1145/
+3394486.3406703.
+[36] T. Schick, J. Dwivedi-Yu, R. Dessì, R. Raileanu, M. Lomeli, E. Hambro, L. Zettlemoyer,
+N. Cancedda, and T. Scialom. Toolformer: Language models can teach themselves to use tools.
+Advances in Neural Information Processing Systems, 36:68539–68551, 2023.
+[37] S. Sengupta, K. Curtis, A. Mallipeddi, A. Mathur, J. Ross, and L. Gou. Mag-v: A multi-agent
+framework for synthetic data generation and verification. arXiv preprint arXiv:2412.04494,
+2024.
+[38] J. Shim, G. Seo, C. Lim, and Y. Jo. Tooldial: Multi-turn dialogue generation method for
+tool-augmented language models. In The Thirteenth International Conference on Learning
+Representations, 2025. URL https://openreview.net/forum?id=J1J5eGJsKZ.
+[39] N. Shinn, F. Cassano, A. Gopinath, K. R. Narasimhan, and S. Yao. Reflexion: language
+agents with verbal reinforcement learning. In Thirty-seventh Conference on Neural Information
+Processing Systems, 2023. URL https://openreview.net/forum?id=vAElhFcKW6.
+[40] V. Sirdeshmukh, K. Deshpande, J. Mols, L. Jin, E.-Y. Cardona, D. Lee, J. Kritz, W. Primack,
+S. Yue, and C. Xing. Multichallenge: A realistic multi-turn conversation evaluation benchmark
+challenging to frontier llms. arXiv preprint arXiv:2501.17399, 2025.
+[41] H. Su, R. Sun, J. Yoon, P. Yin, T. Yu, and S. Ö. Arık. Learn-by-interact: A data-centric
+framework for self-adaptive agents in realistic environments. arXiv preprint arXiv:2501.10893,
+2025.
+[42] S. Tang, X. Pang, Z. Liu, B. Tang, R. Ye, X. Dong, Y. Wang, and S. Chen. Synthesizing
+post-training data for llms through multi-agent simulation. arXiv preprint arXiv:2410.14251,
+2024.
+[43] J. Wang, J. Zhou, M. Wen, X. Mo, H. Zhang, Q. Lin, C. Jin, X. Wang, W. Zhang, and Q. Peng.
+Hammerbench: Fine-grained function-calling evaluation in real mobile device scenarios. arXiv
+preprint arXiv:2412.16516, 2024.
+14
+
+=== page 15 ===
+[44] G. Wölflein, D. Ferber, D. Truhn, O. Arandjelovi´c, and J. N. Kather. Llm agents making agent
+tools. arXiv preprint arXiv:2502.11705, 2025.
+[45] F. Yan, H. Mao, C. C.-J. Ji, T. Zhang, S. G. Patil, I. Stoica, and J. E. Gonzalez. Berkeley function
+calling leaderboard. 2024.
+[46] J. Yang, A. Prabhakar, S. Yao, K. Pei, and K. R. Narasimhan. Language agents as hackers:
+Evaluating cybersecurity skills with capture the flag. In Multi-Agent Security Workshop @
+NeurIPS’23, 2023. URL https://openreview.net/forum?id=KOZwk7BFc3.
+[47] J. Yang, A. Prabhakar, K. Narasimhan, and S. Yao. Intercode: Standardizing and benchmarking
+interactive coding with execution feedback. Advances in Neural Information Processing Systems,
+36, 2024.
+[48] R. Yang, F. Ye, J. Li, S. Yuan, Y. Zhang, Z. Tu, X. Li, and D. Yang. The lighthouse of language:
+Enhancing llm agents via critique-guided improvement. arXiv preprint arXiv:2503.16024,
+2025.
+[49] S. Yao, N. Shinn, P. Razavi, and K. Narasimhan. Tau-bench: A benchmark for tool-agent-user
+interaction in real-world domains. arXiv preprint arXiv:2406.12045, 2024.
+[50] F. Yin, Z. Wang, I.-H. Hsu, J. Yan, K. Jiang, Y. Chen, J. Gu, L. T. Le, K.-W. Chang, C.-Y. Lee,
+H. Palangi, and T. Pfister. Magnet: Multi-turn tool-use data synthesis and distillation via graph
+translation, 2025. URL https://arxiv.org/abs/2503.07826.
+[51] Y. Zeng, X. Ding, Y. Wang, W. Liu, W. Ning, Y. Hou, X. Huang, B. Qin, and T. Liu. Boost-
+ing tool use of large language models via iterative reinforced fine-tuning. arXiv preprint
+arXiv:2501.09766, 2025.
+[52] J. Zhang, T. Lan, M. Zhu, Z. Liu, T. Hoang, S. Kokane, W. Yao, J. Tan, A. Prabhakar, H. Chen,
+et al. xlam: A family of large action models to empower ai agent systems. arXiv preprint
+arXiv:2409.03215, 2024.
+[53] J. Zhang, T. Hoang, M. Zhu, Z. Liu, S. Wang, T. Awalgaonkar, A. Prabhakar, H. Chen, W. Yao,
+Z. Liu, et al. Actionstudio: A lightweight framework for data and training of action models.
+arXiv preprint arXiv:2503.22673, 2025.
+[54] K. Zhang, W. Yao, Z. Liu, Y. Feng, Z. Liu, R. Rithesh, T. Lan, L. Li, R. Lou, J. Xu, et al.
+Diversity empowers intelligence: Integrating expertise of software engineering agents. In The
+Thirteenth International Conference on Learning Representations, 2024.
+[55] Y. Zhang, J. Lu, and N. Jaitly. Probing the multi-turn planning capabilities of LLMs via 20
+question games. In L.-W. Ku, A. Martins, and V. Srikumar, editors, Proceedings of the 62nd
+Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers),
+pages 1495–1516, Bangkok, Thailand, Aug. 2024. Association for Computational Linguistics.
+doi: 10.18653/v1/2024.acl-long.82. URL https://aclanthology.org/2024.acl-long.
+82/.
+[56] Y. Zheng, R. Zhang, J. Zhang, Y. Ye, Z. Luo, Z. Feng, and Y. Ma. Llamafactory: Unified
+efficient fine-tuning of 100+ language models. In Proceedings of the 62nd Annual Meeting of
+the Association for Computational Linguistics (Volume 3: System Demonstrations), Bangkok,
+Thailand, 2024. Association for Computational Linguistics. URL http://arxiv.org/abs/
+2403.13372.
+15
+
+=== page 16 ===
+A
+Benchmarks Description
+• BFCL v3: It introduces comprehensive evaluation across single-turn, multi-turn, and multi-
+step function calling scenarios. BFCL v3 evaluates models on their ability to understand user
+requests, select appropriate functions, generate valid parameters, and interpret function outputs
+across multiple interaction turns. The benchmark uses a weighted average of different evaluation
+categories to provide an overall accuracy score.
+• τ-bench: It measures an agent’s ability to interact with simulated human users (powered by lan-
+guage models) and programmatic APIs while following domain-specific policies. τ-bench emulates
+dynamic conversations across multiple domains, including retail and airline customer service,
+requiring agents to maintain context across turns, understand user intents, and follow complex
+domain-specific rules. The benchmark emphasizes the importance of multi-turn interactions and
+policy adherence in real-world applications.
+B
+Prompts
+The prompts used across the various stages of APIGen-MT implemented for τ-bench are shown here –
+Task Configuration Generation (Figure 8), Alignment Validation (Figure 9), Final Semantic Review
+(Figure 10), Trajectory Collection (Figure 11), Stabilized Human Simulation (Figure 12).
+Task Configuration Generation Prompt
+## Instructions
+Generate a task instruction that mimics realistic human users and their intentions, such as with different personality and goals. The task instruction should be
+followed by ‘actions’ which is a list of the tool_calls to be taken to solve this task and ‘outputs’ which is a list of the answers to specific information requests made
+by the user. Think step by step to come up with the action(s) and the corresponding tool_call(s) translating this thought that would be necessary to fulfill the user’s
+request or solve their intentions. Focus on common retail scenarios following the provided task instruction guidelines.
+## Guidelines for Generating Task Instruction (q)
+{task_rules + domain_rules}
+### User Data
+{sampled_user_details}
+### Order Data
+{sampled_orders}
+## Guidelines for generating Groundtruth Actions (agt)
+1.
+The main focus is to generate actions that can modify the underlying database.
+2.
+For actions that do not modify the database like specific information requests, scan the provided User Data directly and append only the answer in ‘outputs’
+(ogt). Do not make separate tool calls for this in ‘actions’.
+3.
+Include multiple tool calls when the scenario requires multiple steps or modifications.
+4.
+Provide precise tool calls with all necessary parameters for each action.
+5.
+Ensure all actions adhere to retail policies and common sense practices.
+## Tools
+The available tool combination in Python format is as follows:
+{sampled_tools}
+## Output Format
+Generate your response according to the following format. Enclose the thought process within ‘<thought></thought>’ tags, and the final structured response within
+‘<answer></answer>’ tags. The structured response should be in strict JSON format, without any additional comments or explanations.
+## Example Tasks
+{example}
+Do not directly copy instruction and the action patterns from the examples. Ground the generation from the above provided data.
+Generate the task now.
+Figure 8: Task configuration generation prompt for retail domain of τ-bench.
+16
+
+=== page 17 ===
+Task Alignment Validation Prompt
+You are an AI judge and your goal is to judge the quality and validity of the provided task object based on the guidelines, following the rubric.
+## Guidelines
+•
+The task object contains an ‘intent’ (q) from a user, ‘actions’ (agt), and ‘outputs’ (ogt).
+•
+The ‘actions’ correspond to the tool_calls made by an AI assistant to satisfy the instruction.
+• A description of the ‘tools’ available to the AI assistant is provided.
+•
+The ‘diff_patch’ is the difference in the database state after the tool_calls are made. It should only reflect changes corresponding to the ‘intent’. There should
+be no extraneous changes. If the ‘diff_patch’ is empty, it means that the tool_calls did not change the database state, which is possible if the instruction was to
+provide information only.
+•
+Perform a brief reflection on the task based on the below Rubrics.
+•
+Think step-by-step to generate a score of 0 or 1 for each of these criteria (1 means follows criterion and 0 means does not)
+## Rubric
+•
+Correctness: Do the actions (agt) accurately implement the instruction (q)?
+•
+Completeness: Is the instruction (q) sufficiently detailed, and is it fully addressed by the actions? (Includes rule-based checks).
+•
+Satisfaction: Do the expected outputs (ogt) fulfill any explicit or implicit information requests within the instruction (q)?
+•
+Creativity: Does the task represent a non-trivial, plausible, and potentially interesting scenario within the domain?
+## Task Object
+{task}
+## Tools in Python format
+{tools}
+## Diff Patch
+{diff_patch}
+## Output format
+<scores>
+{{
+"reflection": str, <a brief high-level review of the task>
+"correctness": int, <0/1>,
+"completeness": int, <0/1>,
+"satisfaction": int, <0/1>,
+"creativity": int, <0/1>,
+"total": int, <total score out of 4>
+"correction": str, <brief explanation and suggested correction (if needed)>
+}}
+</scores>
+Figure 9: Task alignment validation prompt for τ-bench. This is sent to each LM in the review
+committee to get their scores, following which we employ majority voting.
+Final Semantic Review Prompt
+You are responsible for analyzing and summarizing feedback from multiple AI judges. Your primary goal is to provide clear, actionable feedback that will
+help the generator LLM improve its future outputs. You do not evaluate the task directly; instead, you review and grounding the existing feedback from the AI judges.
+## Review Process
+•
+Begin by analyzing individual reflections and scores from each judge.
+•
+Summarize common points of agreement or disagreement.
+•
+Offer a concise summary of actionable feedback to be sent back to the data generator, which aims to improve the next round of data quality.
+### Diff Patch
+{diff_patch}
+### Generated Task Data
+{task}
+### AI Judges’ Feedback
+{reviews}
+## Output Format
+Generate your response according to the following format. Enclose the thought process within ‘<thought></thought>’ tags, and the final summary of actionable
+feedback within ‘<summary></summary>’ tags.
+Figure 10: Final semantic review prompt for τ-bench.
+17
+
+=== page 18 ===
+Trajectory Collection Prompt
+You are a detail-oriented user interacting with an AI agent.
+## Intent
+{intent}
+## Rules
+•
+Generate one line at a time to simulate the user’s message.
+•
+Do not give away all the intent at once. Only provide the information that is necessary for the current step.
+•
+Do not hallucinate information that is not provided in the intent.
+•
+If the intent goal is satisfied, generate ‘###STOP###’ to end the conversation.
+•
+Do not repeat the exact intent in the conversation. Instead, use your own words to convey the same information.
+•
+Try to make the conversation as natural as possible and stick to the personalities in the intent.
+Figure 11: Trajectory collection prompt for τ-bench.
+BoN User LM Setting Prompt
+You are a fair judge and an expert in following details.
+A human is interacting with a retail assistant to get help on solving their task.
+You are provided with the description of the human and the task the
+human wants to accomplish (wrapped with <description></description>), and a candidate response (wrapped with <response></response>) the human wants to
+give the assistant. Please help the human evaluate this candidate response, give an integer score (ranging from 0 to 10) to indicate the correctness of the response,
+higher score means better quality.
+1. If the response includes specific item / order / personal details, and they correctly match the task description you should give full score of 10. If there is some
+change in details, give a corresponding lower score (more incorrect details gets lower score).
+2. The response can include any normal conversation otherwise (e.g. asking details, saying ###STOP###) etc. which are all correct responses.
+3. Additionally, if the candidate_response keeps the conversation flowing by describing the task clearly / gives information properly then give a high score and if not
+(e.g. "I don’t remember" or unhelpful response) should get a corresponding lower score.
+<description> {description} </description>
+<response> {response} </response>
+After scoring using the mentioned guideline, tell me your score, wrap it in <score></score> tags.
+Figure 12: Best-of-N (BoN) User LM setting prompt used in the retail domain of τ-bench.
+18
+
